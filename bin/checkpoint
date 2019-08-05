@@ -1,0 +1,42 @@
+#!/bin/bash
+
+hashlen=`echo $1 | cut -f3 -d. | wc -c`
+if [ ${hashlen} != 17 ]; then
+  echo "ERROR: That doesn't look like a valid checkpoint."
+  echo "       Please check the command, and type it again correctly."
+  exit
+fi
+if [ ! -e $HOME/repo ]; then
+  echo "You don't seem to have setup your git repository correctly."
+  echo "(I can't find the directory)"
+  echo "Please read the Unit1 PDF file again, and check from about step 12"
+  echo "onwards."
+  echo ""
+  echo "ERROR: Your checkpoint has not been recorded."
+  exit
+fi
+cd $HOME/repo
+if [ ! -e $HOME/repo/.git ]; then
+  echo "You don't seem to have setup your git repository correctly."
+  echo "(It doesn't seem to be a git repository.)"
+  echo "Please read the Unit1 PDF file again, and check from about step 12"
+  echo "onwards."
+  echo ""
+  echo "ERROR: Your checkpoint has not been recorded."
+  exit
+fi
+git pull || ( echo "ERROR: Could not pull from github."; exit )
+mkdir -p $HOME/repo/checkpoints
+if [ -e $HOME/repo/checkpoints/$1 ]; then
+  echo "ERROR: You seem to already have that checkpoint."
+  exit
+fi
+touch $HOME/repo/checkpoints/$1
+git add $HOME/repo/checkpoints/$1
+git commit -m 'add checkpoint $1' $HOME/repo/checkpoints/$1
+git push origin || ( echo "ERROR: Could not push checkpoint to github. Checkpoint may not be recorded"; exit )
+echo ""
+echo "Checkpoint successfully recorded."
+echo "The checkpoints.pdf file will not be updated immediately, but should"
+echo "typically be updated after 24 - 72 hours."
+exit 0

@@ -1,1 +1,3 @@
 apt-get install pastebinit
+cp  /home/student/OS2019StudentMaterial/bin/checkpoint /usr/local/bin/checkpoint
+chmod 755 /usr/local/bin/checkpoint
