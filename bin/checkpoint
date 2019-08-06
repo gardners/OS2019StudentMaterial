@@ -33,7 +33,7 @@ if [ -e $HOME/repo/checkpoints/$1 ]; then
 fi
 touch $HOME/repo/checkpoints/$1
 git add $HOME/repo/checkpoints/$1
-git commit -m 'add checkpoint $1' $HOME/repo/checkpoints/$1
+git commit -m 'add checkpoint '"$1" $HOME/repo/checkpoints/$1
 git push origin || ( echo "ERROR: Could not push checkpoint to github. Checkpoint may not be recorded"; exit )
 echo ""
 echo "Checkpoint successfully recorded."
