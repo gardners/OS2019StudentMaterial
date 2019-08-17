@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "Running post-fetch script"
 echo root | su - root ${HOME}/OS2019StudentMaterial/bin/as-root
-mkdir -p ${HOME}/repo/unit2
+mkdir -p ${HOME}/repo/unit{2,3}
 cp ${HOME}/OS2019StudentMaterial/unit2/mega65hyper.ld ${HOME}/repo/unit2/
 cp ${HOME}/OS2019StudentMaterial/unit2/Makefile ${HOME}/repo/unit2/
+cp ${HOME}/OS2019StudentMaterial/unit3/* ${HOME}/repo/unit3/
