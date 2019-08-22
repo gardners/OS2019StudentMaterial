@@ -1,0 +1,13 @@
+const unsigned short SCREEN = $0400;
+char[] MESSAGE = "user space programme is running";
+
+void main()
+{
+    // Print message
+    char* sc = SCREEN+40*2;
+    char* msg = MESSAGE;
+    while(*msg) {
+        *sc++ = *msg++;
+    }
+
+}
