@@ -235,7 +235,7 @@ struct thing *parse_thing(char *left)
 {
   struct thing *t=calloc(sizeof(struct thing),1);
 
-  fprintf(stderr,"Parsing '%s'\n",left);
+  //  fprintf(stderr,"Parsing '%s'\n",left);
   
   if(!strncmp(left,"_hi_",4)) {
     t->hi=1;
@@ -337,11 +337,13 @@ int generate_assignment(char *left, char *right)
   l=parse_thing(left);
   r=parse_thing(right);
 
+#if 0
   printf("Left:\n");
   describe_thing(0,l);
   printf("Right:\n");
   describe_thing(0,r);
-
+#endif
+  
   /*
     Ok, so now we have the parsed left and right expressions.
     We need to figure out how to get the things done.
@@ -362,7 +364,7 @@ int generate_assignment(char *left, char *right)
   */
 
   // Do any setup we need, e.g., for pointer access
-  if (l->deref||r->deref) {
+  if (l->deref>1||r->deref>1) {
     printf("ldy #$00\n");
   }
   
@@ -381,7 +383,12 @@ int generate_assignment(char *left, char *right)
 	} else if (r->reg_y) {
 	  printf("tya\n");
 	} else if (r->deref==0) {
-	  printf("lda #{%s}\n",r->name);
+	  switch(byte) {
+	  case 0: printf("lda #<{%s}\n",r->name); break;
+	  case 1: printf("lda #>{%s}\n",r->name); break;
+	  case 2: printf("lda #<{%s}>>16\n",r->name); break;
+	  case 3: printf("lda #>{%s}>>16\n",r->name); break;
+	  }
 	} else if (r->deref==1) {
 	  printf("lda {%s}",l->name);
 	  if (byte) printf("+%d",byte);
@@ -410,7 +417,7 @@ int generate_assignment(char *left, char *right)
 	} else if (l->deref==0) {
 	  printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
 	} else if (l->deref==1) {
-	  printf("sta {%s}",r->name);
+	  printf("sta {%s}",l->name);
 	  if (byte) printf("+%d",byte);
 	  printf("\n");
 	} else if (l->deref==2) {
@@ -486,7 +493,7 @@ int generate_fragment(char *name)
 int main(int argc,char **argv)
 {
   int i;
-  printf("Checking LVALUE_FORMS and RVALUE_FORMS...\n");
+  //  printf("Checking LVALUE_FORMS and RVALUE_FORMS...\n");
   for(i=0;;i++) {
     if (!lvalue_name(i)) break;
   }
