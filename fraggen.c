@@ -344,7 +344,7 @@ int generate_assignment(char *left, char *right)
   l=parse_thing(left);
   r=parse_thing(right);
 
-#if 1
+#if 0
   printf("Left:\n");
   describe_thing(0,l);
   printf("Right:\n");
@@ -372,7 +372,7 @@ int generate_assignment(char *left, char *right)
 
   // Do any setup we need, e.g., for pointer access
   if (l->deref>1||r->deref>1) {
-    printf("ldy #$00\n");
+    printf("ldy #0\n");
   }
   
   for(int byte=0;byte<4;byte++)
