@@ -118,6 +118,7 @@ struct thing {
   int deref;
   int sign;
   int shift;
+  struct thing *shift_thing;
   char *name;
   struct thing *derefidx;
 };
@@ -184,9 +185,31 @@ struct thing *parse_thing(char *left)
     case 'z':
       t->name=&left[3];
       if (strchr(t->name,'_')) {
-	// XXX - derference indexes will have to be supported here in time
-	fprintf(stderr,"Can't parse destination description '%s', due to _ suffix.\n",&left[3]);
-	exit(-1);
+	char *suffix=strchr(t->name,'_');
+	suffix[0]=0;
+	suffix++;
+	if (!strncmp(suffix,"ror_",4)) {
+	  if (sscanf(&suffix[4],"%d",&t->shift)==1) {
+	    // Fixed numeric shift to the right
+	  } else {
+	    t->shift=1; // RIGHT
+	    t->shift_thing=parse_thing(&suffix[4]);
+	  }
+	}
+	else if (!strncmp(suffix,"_rol_",4)) {
+	  if (sscanf(&suffix[4],"%d",&t->shift)==1) {
+	    // Fixed numeric shift to the left
+	    t->shift=-t->shift;    
+	  } else {
+	    t->shift=-1; // LEFT
+	    t->shift_thing=parse_thing(&suffix[4]);
+	  }	
+	}
+	else {
+	  // XXX - derference indexes will have to be supported here in time
+	  fprintf(stderr,"Can't parse destination description suffix '_%s'.\n",suffix);
+	  exit(-1);
+	}
       }
       break;
     default:
@@ -234,6 +257,9 @@ int generate_assignment(char *left, char *right)
 
 int generate_comparison(char *destination,char *comparison)
 {
+  fprintf(stderr,"comparison handling not supported.\n");
+  exit(-1);
+  return 0;
 }
 
 int generate_fragment(char *name)
