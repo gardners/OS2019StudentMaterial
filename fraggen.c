@@ -390,7 +390,7 @@ int generate_assignment(char *left, char *right)
 	  case 3: printf("lda #>{%s}>>16\n",r->name); break;
 	  }
 	} else if (r->deref==1) {
-	  printf("lda {%s}",l->name);
+	  printf("lda {%s}",r->name);
 	  if (byte) printf("+%d",byte);
 	  printf("\n");
 	} else if (r->deref==2) {
@@ -422,7 +422,7 @@ int generate_assignment(char *left, char *right)
 	  printf("\n");
 	} else if (l->deref==2) {
 	  printf("sta ({%s}),y\n",l->name);
-	} else if (r->deref>2) {
+	} else if (l->deref>2) {
 	  fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
 	  exit(-1);
 	} else {
