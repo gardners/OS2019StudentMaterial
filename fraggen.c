@@ -258,7 +258,11 @@ struct thing *parse_thing(char *left)
   while(!strncmp(left,"_deref_",7)) {
     t->deref++;
     left+=strlen("_deref_");
-    if (left[0]=='(')  left++;
+    if (left[0]=='(') {
+      left++;
+      int len=strlen(left);
+      if (left[len-1]==')') left[len-1]=0;
+    }
   }
   
   if (!strcmp(left,"vbuaa")) {
@@ -340,7 +344,7 @@ int generate_assignment(char *left, char *right)
   l=parse_thing(left);
   r=parse_thing(right);
 
-#if 0
+#if 1
   printf("Left:\n");
   describe_thing(0,l);
   printf("Right:\n");
