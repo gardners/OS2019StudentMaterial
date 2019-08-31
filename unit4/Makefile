@@ -3,13 +3,13 @@ all:	checkpoint4.1.bin
 pad:	pad.c
 	gcc -o pad pad.c
 
-#userspace4.1.prg:	userspace4.1.kc myabi.kc pad
-#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -Onoloophead -a $<
-#	./pad userspace4.1.prg
-#
-#userspace4.2.prg:	userspace4.2.kc myabi.kc pad
-#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -Onoloophead -a $<
-#	./pad userspace4.2.prg
+userspace4.1.prg:	userspace4.1.kc myabi.kc pad
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -Onoloophead -a $<
+	./pad userspace4.1.prg
+
+userspace4.2.prg:	userspace4.2.kc myabi.kc pad
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -Onoloophead -a $<
+	./pad userspace4.2.prg
 
 userspace4.3.prg:	userspace4.3.kc myabi.kc pad
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -Onoloophead -a $<
