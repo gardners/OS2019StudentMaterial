@@ -107,6 +107,82 @@ char *rvalue_name(int idx)
   
 }
 
+int generate_assignment(char *left, char *right)
+{
+  int dest_a=0;
+  int dest_x=0;
+  int dest_y=0;
+  int dest_mem=0;
+  int dest_bits=0;
+  int dest_signed=0;
+  char *dest_name=NULL;
+  
+  if (!strcmp(left,"vbuaa")) {
+    dest_a=1; dest_bits=8;
+  }
+  else if (!strcmp(left,"vbuxx")) {
+    dest_x=1; dest_bits=8;
+  }
+  else if (!strcmp(left,"vbuyy")) {
+    dest_y=1; dest_bits=8;
+  }
+  else if (!strcmp(left,"vbsaa")) {
+    dest_a=1; dest_bits=8; dest_signed=1;
+  }
+  else if (!strcmp(left,"vbsxx")) {
+    dest_x=1; dest_bits=8; dest_signed=1;
+  }
+  else if (!strcmp(left,"vbsyy")) {
+    dest_y=1; dest_bits=8; dest_signed=1;
+  }
+  else if (left[0]=='p') {
+    // It's a pointer, so 16 bits
+    dest_mem=1; dest_bits=16;
+  }
+  else if (left[0]=='v') {
+    // d/w/b for size
+    switch(left[1]) {
+    case 'd': dest_bits=32; break;
+    case 'w': dest_bits=16; break;
+    case 'b': dest_bits=8; break;
+    default:
+      fprintf(stderr,"Can't parse size '%c'\n",left[1]);
+      exit(-1);
+    }
+
+    switch(left[2]) {
+    case 's': dest_signed=1; break;
+    case 'u': dest_signed=0; break;
+    default:
+      fprintf(stderr,"Can't parse signedness description '%c'\n",left[2]);
+      exit(-1);
+    }
+
+    switch(left[3]) {
+    case 'z':
+      dest_name=&left[3];
+      if (strchr(dest_name,'_')) {
+	fprintf(stderr,"Can't parse destination description '%s', due to _ suffix.\n",&left[3]);
+	exit(-1);
+      }
+      break;
+    default:
+      fprintf(stderr,"Can't parse signedness description '%s'\n",&left[3]);
+      exit(-1);
+    }
+  }
+  else {
+    fprintf(stderr,"Don't know how to parse left argument '%s'\n",left);
+    exit(-1);
+  }
+  
+  return 0;
+}
+
+int generate_comparison(char *destination,char *comparison)
+{
+}
+
 int generate_fragment(char *name)
 {
   /*
@@ -125,7 +201,7 @@ int generate_fragment(char *name)
       fprintf(stderr,"Could not parse assignment fragment '%s' (junk at end of name)\n",name);
       exit(-1);
     }
-    
+    return generate_assignment(left,right);
   } else {
     // Comparison + branch
     char *then=strstr(name,"_then_");
@@ -138,8 +214,9 @@ int generate_fragment(char *name)
     char *destination=then+strlen("_then_");
     strcpy(comparison,name);
     comparison[then_ofs]=0;
-    printf("Branch to <%s> if <%s>\n",destination,comparison);
-    
+
+    return generate_comparison(destination,comparison);
+
   }
   
   return 0;
