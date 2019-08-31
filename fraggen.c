@@ -376,11 +376,11 @@ int generate_assignment(char *left, char *right)
   }
 
   if (r->inc==1&&!strcmp(r->name,l->name)
-      &&r->deref==1&&l->deref==1) {
+      &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
     // Short cut for INC
     printf("inc {%s}\n",r->name);
   } else if (r->inc==-1&&!strcmp(r->name,l->name)
-      &&r->deref==1&&l->deref==1) {
+      &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
     // Short cut for DEC
     printf("dec {%s}\n",r->name);
   }
