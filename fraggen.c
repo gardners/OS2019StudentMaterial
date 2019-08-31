@@ -381,7 +381,14 @@ int generate_assignment(char *left, char *right)
       
       // Stop once we have no more bytes to deal with
       if (l->bytes<=byte&&r->bytes<=byte) break;
-
+      
+      // only increment Y if there are more bytes coming,
+      // and we have sufficient dereferencing to make it needed
+      // i.e., on all but the first round
+      if (byte)
+	if (l->deref>1||r->deref>1)
+	  printf("iny\n");
+      
       if (byte<r->bytes) {
 	if (r->reg_a) {
 	  // Nothing to do
@@ -438,13 +445,6 @@ int generate_assignment(char *left, char *right)
 	}
       }
 
-      // only increment Y if there are more bytes coming,
-      // and we have sufficient dereferencing to make it needed
-      if (!((l->bytes+1)<=(byte+1)||(r->bytes+1)<=(byte+1))) {
-	if (l->deref>1||r->deref>1)
-	  printf("iny\n");
-      }
-      
     }
   
   
