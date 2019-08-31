@@ -107,52 +107,74 @@ char *rvalue_name(int idx)
   
 }
 
-int generate_assignment(char *left, char *right)
+struct thing {
+  int reg_a;
+  int reg_x;
+  int reg_y;
+  int bits;
+  int mem;
+  int hi;
+  int lo;
+  int deref;
+  int sign;
+  int shift;
+  char *name;
+  struct thing *derefidx;
+};
+
+struct thing *parse_thing(char *left)
 {
-  int dest_a=0;
-  int dest_x=0;
-  int dest_y=0;
-  int dest_mem=0;
-  int dest_bits=0;
-  int dest_signed=0;
-  char *dest_name=NULL;
+  struct thing *t=calloc(sizeof(struct thing),1);
+  
+  if(!strncmp(left,"_hi_",4)) {
+    t->hi=1;
+    left+=strlen("_hi_");
+  }
+  if(!strncmp(left,"_lo_",4)) {
+    t->lo=1;
+    left+=strlen("_lo_");
+  }
+  while(!strncmp(left,"_deref_",8)) {
+    t->deref++;
+    left+=strlen("_deref_");
+  }
   
   if (!strcmp(left,"vbuaa")) {
-    dest_a=1; dest_bits=8;
+    t->reg_a=1; t->bits=8;
   }
   else if (!strcmp(left,"vbuxx")) {
-    dest_x=1; dest_bits=8;
+    t->reg_x=1; t->bits=8;
   }
   else if (!strcmp(left,"vbuyy")) {
-    dest_y=1; dest_bits=8;
+    t->reg_y=1; t->bits=8;
   }
   else if (!strcmp(left,"vbsaa")) {
-    dest_a=1; dest_bits=8; dest_signed=1;
+    t->reg_a=1; t->bits=8; t->sign=1;
   }
   else if (!strcmp(left,"vbsxx")) {
-    dest_x=1; dest_bits=8; dest_signed=1;
+    t->reg_x=1; t->bits=8; t->sign=1;
   }
   else if (!strcmp(left,"vbsyy")) {
-    dest_y=1; dest_bits=8; dest_signed=1;
+    t->reg_y=1; t->bits=8; t->sign=1;
   }
   else if (left[0]=='p') {
     // It's a pointer, so 16 bits
-    dest_mem=1; dest_bits=16;
+    t->mem=1; t->bits=16;
   }
   else if (left[0]=='v') {
     // d/w/b for size
     switch(left[1]) {
-    case 'd': dest_bits=32; break;
-    case 'w': dest_bits=16; break;
-    case 'b': dest_bits=8; break;
+    case 'd': t->bits=32; break;
+    case 'w': t->bits=16; break;
+    case 'b': t->bits=8; break;
     default:
       fprintf(stderr,"Can't parse size '%c'\n",left[1]);
       exit(-1);
     }
 
     switch(left[2]) {
-    case 's': dest_signed=1; break;
-    case 'u': dest_signed=0; break;
+    case 's': t->sign=1; break;
+    case 'u': t->sign=0; break;
     default:
       fprintf(stderr,"Can't parse signedness description '%c'\n",left[2]);
       exit(-1);
@@ -160,8 +182,9 @@ int generate_assignment(char *left, char *right)
 
     switch(left[3]) {
     case 'z':
-      dest_name=&left[3];
-      if (strchr(dest_name,'_')) {
+      t->name=&left[3];
+      if (strchr(t->name,'_')) {
+	// XXX - derference indexes will have to be supported here in time
 	fprintf(stderr,"Can't parse destination description '%s', due to _ suffix.\n",&left[3]);
 	exit(-1);
       }
@@ -175,6 +198,36 @@ int generate_assignment(char *left, char *right)
     fprintf(stderr,"Don't know how to parse left argument '%s'\n",left);
     exit(-1);
   }
+
+  return t;
+}   
+  
+int generate_assignment(char *left, char *right)
+{
+  struct thing *l,*r;
+
+  l=parse_thing(left);
+  r=parse_thing(right);
+  
+  /*
+    The right value is more complex, as we can have a pile of levels of 
+    de-referencing to do. We'll add those later.
+
+    From Jesper:
+    J: Pointers are a bit tricky - especially since c1 and z1 adds some more complexity
+    J: c1 means the value is constant. So pbuc1 is a pointer to a byte - where the pointer itself is a constant address I. Memory
+    J: pbuz1 is a pointer to a byte where the pointer is stored on ZP
+    So there is an extra level of indirection for z’s
+    Me: So what does pptc1 mean exactly then?
+    J: Pointer to pointer (constant address) - so far pointers to pointers at not typed beyond that.    
+
+  */
+
+  printf("lvalue is %d bits, target is %s\n",
+	 l->bits,l->name?l->name:"probably a register");
+
+  printf("rvalue is %d bits, source is %s\n",
+	 r->bits,r->name?r->name:"probably a register");  
   
   return 0;
 }
