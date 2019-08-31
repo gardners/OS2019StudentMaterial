@@ -111,7 +111,7 @@ struct thing {
   int reg_a;
   int reg_x;
   int reg_y;
-  int bits;
+  int bytes;
   int mem;
   int hi;
   int lo;
@@ -146,9 +146,9 @@ void parse_thing_common(char *left,struct thing *t)
   
   // d/w/b for size
   switch(left[1]) {
-  case 'd': t->bits=32; break;
-  case 'w': t->bits=16; break;
-  case 'b': t->bits=8; break;
+  case 'd': t->bytes=4; break;
+  case 'w': t->bytes=2; break;
+  case 'b': t->bytes=1; break;
   default:
     fprintf(stderr,"Can't parse size '%c'\n",left[1]);
     exit(-1);
@@ -166,6 +166,7 @@ void parse_thing_common(char *left,struct thing *t)
   case 'z':
     // There is an extra level of indirection for Z versus C.
     // Do we need to do anything else here to implement it?
+    t->deref++;
   case 'c':
     t->name=&left[3];
     if (strchr(t->name,'_')) {
@@ -224,7 +225,6 @@ void parse_thing_common(char *left,struct thing *t)
   }
 
   left+=4;
-  printf("Remainder is '%s'\n",left);
   
   return;
 }
@@ -259,26 +259,26 @@ struct thing *parse_thing(char *left)
   }
   
   if (!strcmp(left,"vbuaa")) {
-    t->reg_a=1; t->bits=8;
+    t->reg_a=1; t->bytes=1;
   }
   else if (!strcmp(left,"vbuxx")) {
-    t->reg_x=1; t->bits=8;
+    t->reg_x=1; t->bytes=1;
   }
   else if (!strcmp(left,"vbuyy")) {
-    t->reg_y=1; t->bits=8;
+    t->reg_y=1; t->bytes=1;
   }
   else if (!strcmp(left,"vbsaa")) {
-    t->reg_a=1; t->bits=8; t->sign=1;
+    t->reg_a=1; t->bytes=1; t->sign=1;
   }
   else if (!strcmp(left,"vbsxx")) {
-    t->reg_x=1; t->bits=8; t->sign=1;
+    t->reg_x=1; t->bytes=1; t->sign=1;
   }
   else if (!strcmp(left,"vbsyy")) {
-    t->reg_y=1; t->bits=8; t->sign=1;
+    t->reg_y=1; t->bytes=1; t->sign=1;
   }
   else if (left[0]=='p') {
     // It's a pointer, so 16 bits
-    t->mem=1; t->bits=16;
+    t->mem=1; t->bytes=2;
 
     t->pointer=1;
 
@@ -305,7 +305,7 @@ void describe_thing(int depth,struct thing *t)
   if (t->reg_a) printf("reg_a");
   if (t->reg_x) printf("reg_x");
   if (t->reg_y) printf("reg_y");
-  printf(" bits=%d",t->bits);
+  printf(" bytes=%d",t->bytes);
   if (t->hi) printf(" <"); 
   if (t->lo) printf(" >");
   if (t->inc) printf(" %-d",t->inc);
@@ -342,6 +342,98 @@ int generate_assignment(char *left, char *right)
   printf("Right:\n");
   describe_thing(0,r);
 
+  /*
+    Ok, so now we have the parsed left and right expressions.
+    We need to figure out how to get the things done.
+
+    There are a bunch of complicated cases, but in general it boils down
+    to copying bytes from the destination to the source, optionally
+    adding, subtracting or shifting along the way.
+
+    For the more complex cases, we first transform them into simpler
+    cases by evaluating the complicated things, so that we end up
+    with, at worst, a pointer or variable receiving the value of a pointer
+    or variable.    
+
+    If both sides need derefencing, then they have to be normalised to
+    having the same offset from the pointer, so that Y can be used as the
+    index for both.
+    
+  */
+
+  // Do any setup we need, e.g., for pointer access
+  if (l->deref||r->deref) {
+    printf("ldy #$00\n");
+  }
+  
+  for(int byte=0;byte<4;byte++)
+    {
+      //      printf("; byte %d, deref = %d,%d\n",byte,l->deref,r->deref);
+      
+      // Stop once we have no more bytes to deal with
+      if (l->bytes<=byte&&r->bytes<=byte) break;
+
+      if (byte<r->bytes) {
+	if (r->reg_a) {
+	  // Nothing to do
+	} else if (r->reg_x) {
+	  printf("txa\n");
+	} else if (r->reg_y) {
+	  printf("tya\n");
+	} else if (r->deref==0) {
+	  printf("lda #{%s}\n",r->name);
+	} else if (r->deref==1) {
+	  printf("lda {%s}",l->name);
+	  if (byte) printf("+%d",byte);
+	  printf("\n");
+	} else if (r->deref==2) {
+	  printf("lda ({%s}),y\n",r->name);
+	} else if (r->deref>2) {
+	  fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
+	  exit(-1);
+	} else {
+	  fprintf(stderr,"ERROR: Don't know how to read from this source.\n");
+	  exit(-1);
+	}
+      } else {
+	if (byte==r->bytes) printf("lda #$00\n");
+      }
+	
+
+      if (byte<l->bytes) {
+	if (l->reg_a) {
+	  // Nothing to do
+	} else if (l->reg_x) {
+	  printf("tax\n");
+	} else if (l->reg_y) {
+	  printf("tay\n");       
+	} else if (l->deref==0) {
+	  printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
+	} else if (l->deref==1) {
+	  printf("sta {%s}",r->name);
+	  if (byte) printf("+%d",byte);
+	  printf("\n");
+	} else if (l->deref==2) {
+	  printf("sta ({%s}),y\n",l->name);
+	} else if (r->deref>2) {
+	  fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
+	  exit(-1);
+	} else {
+	  fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
+	  exit(-1);
+	}
+      }
+
+      // only increment Y if there are more bytes coming,
+      // and we have sufficient dereferencing to make it needed
+      if (l->bytes<byte||r->bytes<byte) {
+	if (l->deref>1||r->deref>1)
+	  printf("iny\n");
+      }
+      
+    }
+  
+  
   return 0;
 }
 
