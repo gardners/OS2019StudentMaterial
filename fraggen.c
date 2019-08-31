@@ -384,91 +384,113 @@ int generate_assignment(char *left, char *right)
     // Short cut for DEC
     printf("dec {%s}\n",r->name);
   }
-  else    
-  
-  for(int byte=0;byte<4;byte++)
-    {
-      //      printf("; byte %d, deref = %d,%d\n",byte,l->deref,r->deref);
-      
-      // Stop once we have no more bytes to deal with
-      if (l->bytes<=byte&&r->bytes<=byte) break;
-      
-      // only increment Y if there are more bytes coming,
-      // and we have sufficient dereferencing to make it needed
-      // i.e., on all but the first round
-      if (byte)
-	if (l->deref>1||r->deref>1)
-	  printf("iny\n");
+  else {
 
-      if (byte<r->bytes) {
-	if (r->reg_a) {
-	  // Nothing to do
-	} else if (r->reg_x) {
-	  printf("txa\n");
-	} else if (r->reg_y) {
-	  printf("tya\n");
-	} else if (r->deref==0) {
-	  switch(byte) {
-	  case 0: printf("lda #<{%s}\n",r->name); break;
-	  case 1: printf("lda #>{%s}\n",r->name); break;
-	  case 2: printf("lda #<{%s}>>16\n",r->name); break;
-	  case 3: printf("lda #>{%s}>>16\n",r->name); break;
-	  }
-	} else if (r->deref==1) {
-	  printf("lda {%s}",r->name);
-	  if (byte) printf("+%d",byte);
-	  printf("\n");
-	} else if (r->deref==2) {
-	  printf("lda ({%s}),y\n",r->name);
-	} else if (r->deref>2) {
-	  fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
-	  exit(-1);
-	} else {
-	  fprintf(stderr,"ERROR: Don't know how to read from this source.\n");
-	  exit(-1);
+    // Normalise shifts down to a single bytes worth
+    int shift_offset=r->shift/8;   
+    r->shift-=shift_offset*8;
+    l->shift-=shift_offset*8;
+    
+    //    printf("shift_offset=%d, r->shift=%d\n",shift_offset,r->shift);
+    
+    for(int byte=0;byte<4;byte++)
+      {
+	//      printf("; byte %d, deref = %d,%d\n",byte,l->deref,r->deref);
+	
+	// Stop once we have no more bytes to deal with
+	if (l->bytes<=byte&&r->bytes<=byte) break;
+	
+	// only increment Y if there are more bytes coming,
+	// and we have sufficient dereferencing to make it needed
+	// i.e., on all but the first round
+	if (byte)
+	  if (l->deref>1||r->deref>1)
+	    printf("iny\n");
+	
+	if (!byte) {
+	  if (shift_offset<0) printf("lda #0\n");
 	}
-      } else {
-	if (byte==r->bytes) printf("lda #$00\n");
-      }
-
-      // Implement addition/subtraction of constants other than 1 and -1
-      if (r->inc) {
-	if (!byte) printf("clc\n");
-	switch(byte) {
+	
+	if (byte<r->bytes) {
+	  if (r->reg_a) {
+	    // Nothing to do
+	  } else if (r->reg_x) {
+	    printf("txa\n");
+	  } else if (r->reg_y) {
+	    printf("tya\n");
+	  } else if (r->deref==0) {
+	    if (shift_offset+byte>=0) {
+	      switch(byte) {
+	      case 0: printf("lda #<{%s}\n",r->name); break;
+	      case 1: printf("lda #>{%s}\n",r->name); break;
+	      case 2: printf("lda #<{%s}>>16\n",r->name); break;
+	      case 3: printf("lda #>{%s}>>16\n",r->name); break;
+	      }
+	    }
+	  } else if (r->deref==1) {
+	    if (shift_offset+byte>=0) {
+	      printf("lda {%s}",r->name);
+	      if (byte+shift_offset) printf("+%d",byte+shift_offset);
+	      printf("\n");
+	    }
+	  } else if (r->deref==2) {
+	    if (shift_offset+byte>=0) {
+	      printf("lda ({%s}),y\n",r->name);
+	    }
+	  } else if (r->deref>2) {
+	    fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
+	    exit(-1);
+	  } else {
+	    fprintf(stderr,"ERROR: Don't know how to read from this source.\n");
+	    exit(-1);
+	  }
+	} else {
+	  if (byte==r->bytes) printf("lda #$00\n");
+	}
+	
+	// Implement addition/subtraction of constants other than 1 and -1
+	if (r->inc) {
+	  if (!byte) printf("clc\n");
+	  switch(byte) {
 	  case 0: printf("adc #<{%s}\n",r->name); break;
 	  case 1: printf("adc #>{%s}\n",r->name); break;
 	  case 2: printf("adc #<{%s}>>16\n",r->name); break;
 	  case 3: printf("adc #>{%s}>>16\n",r->name); break;
-	}	 
-      }
-      
-
-      if (byte<l->bytes) {
-	if (l->reg_a) {
-	  // Nothing to do
-	} else if (l->reg_x) {
-	  printf("tax\n");
-	} else if (l->reg_y) {
-	  printf("tay\n");       
-	} else if (l->deref==0) {
-	  printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
-	} else if (l->deref==1) {
-	  printf("sta {%s}",l->name);
-	  if (byte) printf("+%d",byte);
-	  printf("\n");
-	} else if (l->deref==2) {
-	  printf("sta ({%s}),y\n",l->name);
-	} else if (l->deref>2) {
-	  fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
-	  exit(-1);
-	} else {
-	  fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
-	  exit(-1);
+	  }	 
 	}
+	if (r->shift&&!r->shift_thing) {
+	}
+	if (r->shift&&r->shift_thing) {
+	  printf("ERROR: Shifting by non-constant amounts not implemented.\n");
+	}
+	
+	
+	if (byte<l->bytes) {
+	  if (l->reg_a) {
+	    // Nothing to do
+	  } else if (l->reg_x) {
+	    printf("tax\n");
+	  } else if (l->reg_y) {
+	    printf("tay\n");       
+	  } else if (l->deref==0) {
+	    printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
+	  } else if (l->deref==1) {
+	    printf("sta {%s}",l->name);
+	    if (byte) printf("+%d",byte);
+	    printf("\n");
+	  } else if (l->deref==2) {
+	    printf("sta ({%s}),y\n",l->name);
+	  } else if (l->deref>2) {
+	    fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
+	    exit(-1);
+	  } else {
+	    fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
+	    exit(-1);
+	  }
+	}
+	
       }
-
-    }
-  
+  }  
   
   return 0;
 }
