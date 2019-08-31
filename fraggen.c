@@ -430,7 +430,18 @@ int generate_assignment(char *left, char *right)
       } else {
 	if (byte==r->bytes) printf("lda #$00\n");
       }
-	
+
+      // Implement addition/subtraction of constants other than 1 and -1
+      if (r->inc) {
+	if (!byte) printf("clc\n");
+	switch(byte) {
+	  case 0: printf("adc #<{%s}\n",r->name); break;
+	  case 1: printf("adc #>{%s}\n",r->name); break;
+	  case 2: printf("adc #<{%s}>>16\n",r->name); break;
+	  case 3: printf("adc #>{%s}>>16\n",r->name); break;
+	}	 
+      }
+      
 
       if (byte<l->bytes) {
 	if (l->reg_a) {
