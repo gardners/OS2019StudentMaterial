@@ -148,6 +148,7 @@ void parse_thing_common(char *left,struct thing *t)
   switch(left[1]) {
   case 'd': t->bytes=4; break;
   case 'w': t->bytes=2; break;
+  case 'p': t->bytes=2; break;
   case 'b': t->bytes=1; break;
   default:
     fprintf(stderr,"Can't parse size '%c'\n",left[1]);
@@ -155,6 +156,7 @@ void parse_thing_common(char *left,struct thing *t)
   }
   
   switch(left[2]) {
+  case 't': t->sign=0; break;
   case 's': t->sign=1; break;
   case 'u': t->sign=0; break;
   default:
@@ -256,6 +258,7 @@ struct thing *parse_thing(char *left)
   while(!strncmp(left,"_deref_",7)) {
     t->deref++;
     left+=strlen("_deref_");
+    if (left[0]=='(')  left++;
   }
   
   if (!strcmp(left,"vbuaa")) {
