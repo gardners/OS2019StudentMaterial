@@ -8,12 +8,20 @@ set matches=0
 foreach frag ( `ls -1 kickc/fragment/*.asm | sed -e  's,^.*/,,g' -e 's/.asm$//g'` )
   echo -n $frag " : "
   ./fraggen $frag > myfrag
+  sort < myfrag > s1
+  sort < kickc/fragment/${frag}.asm > s2
+  set sdiffs=`diff s1 s2 | wc -l`
   set diffs=`diff myfrag kickc/fragment/${frag}.asm | wc -l`
-  echo "diff: ${diffs}"
+  echo "diff: ${diffs} ${sdiffs}"
   if ( $diffs != 0 ) then
-    echo "Differs"
-    @ fails++
-    diff myfrag kickc/fragment/${frag}.asm
+    if ( $sdiffs != 0 ) then
+      echo "Fail"
+      @ fails++
+      diff myfrag kickc/fragment/${frag}.asm
+    else
+      echo "Instruction order differs"
+      @ matches++
+    endif
   else
     echo "Matches"
     @ matches++
