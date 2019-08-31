@@ -12,7 +12,7 @@ foreach frag ( `ls -1 kickc/fragment/*.asm | sed -e  's,^.*/,,g' -e 's/.asm$//g'
   sort < kickc/fragment/${frag}.asm > s2
   set sdiffs=`diff s1 s2 | wc -l`
   set diffs=`diff myfrag kickc/fragment/${frag}.asm | wc -l`
-  echo "diff: ${diffs} ${sdiffs}"
+#  echo "diff: ${diffs} ${sdiffs}"
   if ( $diffs != 0 ) then
     if ( $sdiffs != 0 ) then
       echo "Fail"

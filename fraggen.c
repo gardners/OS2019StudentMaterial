@@ -107,6 +107,12 @@ char *rvalue_name(int idx)
   
 }
 
+#define OP_AND 1
+#define OP_OR 2
+#define OP_XOR 3
+#define OP_PLUS 4
+#define OP_MINUS 5
+
 struct thing {
   int reg_a;
   int reg_x;
@@ -121,6 +127,8 @@ struct thing {
   int shift;
   int pointer;
   struct thing *shift_thing;
+  int arg_op;
+  struct thing *arg_thing;
   char *name;
   struct thing *derefidx;
 };
@@ -143,6 +151,7 @@ void parse_thing_common(char *left,struct thing *t)
 
   */
 
+  fprintf(stderr,"Parsing '%s'\n",left);
   
   // d/w/b for size
   switch(left[1]) {
@@ -165,6 +174,15 @@ void parse_thing_common(char *left,struct thing *t)
   }
   
   switch(left[3]) {
+  case 'a':
+    t->reg_a=1;
+    break;
+  case 'x':
+    t->reg_x=1;
+    break;
+  case 'y':
+    t->reg_y=1;
+    break;
   case 'z':
     // There is an extra level of indirection for Z versus C.
     // Do we need to do anything else here to implement it?
@@ -194,6 +212,26 @@ void parse_thing_common(char *left,struct thing *t)
 	}
 	suffix=NULL;	
       }
+      else if (!strncmp(suffix,"band_",5)) {
+	t->arg_op=OP_AND;
+	t->arg_thing=parse_thing(&suffix[5]);
+      }
+      else if (!strncmp(suffix,"bor_",4)) {
+	t->arg_op=OP_OR;
+	t->arg_thing=parse_thing(&suffix[4]);
+      }
+      else if (!strncmp(suffix,"bxor_",5)) {
+	t->arg_op=OP_XOR;
+	t->arg_thing=parse_thing(&suffix[5]);
+      }
+      else if (!strncmp(suffix,"plus_",6)) {
+	t->arg_op=OP_PLUS;
+	t->arg_thing=parse_thing(&suffix[6]);
+      }
+      else if (!strncmp(suffix,"minus_",6)) {
+	t->arg_op=OP_MINUS;
+	t->arg_thing=parse_thing(&suffix[6]);
+      }
       if (suffix&&suffix[0]) {
 	if (!strncmp(suffix,"derefidx_",strlen("derefidx_"))) {
 	  suffix+=strlen("derefidx_");
@@ -222,7 +260,7 @@ void parse_thing_common(char *left,struct thing *t)
     }
     break;
   default:
-    fprintf(stderr,"Can't parse signedness description '%s'\n",&left[3]);
+    fprintf(stderr,"Can't parse target description '%s'\n",&left[3]);
     exit(-1);
   }
 
