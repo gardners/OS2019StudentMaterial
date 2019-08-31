@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <stdlib.h>
 
 /*
 
@@ -13,9 +14,10 @@
 #define CHOICE(N,M)   case N: snprintf(&lvalue_name_ret[ofs],1024-ofs,"%s",M"p"); ofs+=strlen(M); break
 #define RCHOICE(N,M)   case N: snprintf(&rvalue_name_ret[ofs],1024-ofs,"%s",M"p"); ofs+=strlen(M); break
 #define DEFCHOICE(N,WAYS) c##N=idx%WAYS; idx=idx/WAYS
-  
+
+// XXX These need to be updated manually if the functions change
 #define LVALUE_FORMS 72
-#define RVALUE_FORMS
+#define RVALUE_FORMS 67392
 
 char lvalue_name_ret[1024];
 char *lvalue_name(int idx)
@@ -105,11 +107,30 @@ char *rvalue_name(int idx)
   
 }
 
+int generate_fragment(char *name)
+{
+
+  return 0;
+}
+
 int main(int argc,char **argv)
 {
-  for(int i=0;;i++) {
+  int i;
+  printf("Checking LVALUE_FORMS and RVALUE_FORMS...\n");
+  for(i=0;;i++) {
+    if (!lvalue_name(i)) break;
+  }
+  if (i!=LVALUE_FORMS) {
+    fprintf(stderr,"LVALUE_FORMS should be %d, not %d. Please update source\n",i,LVALUE_FORMS);
+    exit(-1);
+  }
+  for(i=0;;i++) {
     if (!rvalue_name(i)) break;
-    printf("%d: %s\n",i,rvalue_name(i));
+  }
+  if (i!=RVALUE_FORMS) {
+    fprintf(stderr,"RVALUE_FORMS should be %d, not %d. Please update source\n",i,RVALUE_FORMS);
+    exit(-1);
   }
   
+  return 0;
 }
