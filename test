@@ -1,14 +1,24 @@
 #!/bin/tcsh -f
 
+gcc -g -Wall -o fraggen fraggen.c
+
+set fails=0
+set matches=0
+
 foreach frag ( `ls -1 kickc/fragment/*.asm | sed -e  's,^.*/,,g' -e 's/.asm$//g'` )
-  echo $frag
+  echo -n $frag " : "
   ./fraggen $frag > myfrag
   set diffs=`diff myfrag kickc/fragment/${frag}.asm | wc -l`
   echo "diff: ${diffs}"
   if ( $diffs != 0 ) then
     echo "Differs"
+    @ fails++
     diff myfrag kickc/fragment/${frag}.asm
   else
     echo "Matches"
+    @ matches++
   endif
 end
+
+echo ${fails} "tests failed."
+echo ${matches} "tests passed."
