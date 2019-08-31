@@ -119,10 +119,116 @@ struct thing {
   int deref;
   int sign;
   int shift;
+  int pointer;
   struct thing *shift_thing;
   char *name;
   struct thing *derefidx;
 };
+
+struct thing *parse_thing(char *left);
+
+void parse_thing_common(char *left,struct thing *t)
+{
+  /*
+    The right value is more complex, as we can have a pile of levels of 
+    de-referencing to do. We'll add those later.
+
+    From Jesper:
+    J: Pointers are a bit tricky - especially since c1 and z1 adds some more complexity
+    J: c1 means the value is constant. So pbuc1 is a pointer to a byte - where the pointer itself is a constant address I. Memory
+    J: pbuz1 is a pointer to a byte where the pointer is stored on ZP
+    So there is an extra level of indirection for z’s
+    Me: So what does pptc1 mean exactly then?
+    J: Pointer to pointer (constant address) - so far pointers to pointers at not typed beyond that.    
+
+  */
+
+  
+  // d/w/b for size
+  switch(left[1]) {
+  case 'd': t->bits=32; break;
+  case 'w': t->bits=16; break;
+  case 'b': t->bits=8; break;
+  default:
+    fprintf(stderr,"Can't parse size '%c'\n",left[1]);
+    exit(-1);
+  }
+  
+  switch(left[2]) {
+  case 's': t->sign=1; break;
+  case 'u': t->sign=0; break;
+  default:
+    fprintf(stderr,"Can't parse signedness description '%c'\n",left[2]);
+    exit(-1);
+  }
+  
+  switch(left[3]) {
+  case 'z':
+    // There is an extra level of indirection for Z versus C.
+    // Do we need to do anything else here to implement it?
+  case 'c':
+    t->name=&left[3];
+    if (strchr(t->name,'_')) {
+      char *suffix=strchr(t->name,'_');
+      suffix[0]=0;
+      suffix++;
+      if (!strncmp(suffix,"ror_",4)) {
+	if (sscanf(&suffix[4],"%d",&t->shift)==1) {
+	  // Fixed numeric shift to the right
+	} else {
+	  t->shift=1; // RIGHT
+	  t->shift_thing=parse_thing(&suffix[4]);
+	}
+	suffix=NULL;
+      }
+      else if (!strncmp(suffix,"rol_",4)) {
+	if (sscanf(&suffix[4],"%d",&t->shift)==1) {
+	  // Fixed numeric shift to the left
+	  t->shift=-t->shift;    
+	} else {
+	  t->shift=-1; // LEFT
+	  t->shift_thing=parse_thing(&suffix[4]);
+	}
+	suffix=NULL;	
+      }
+      if (suffix&&suffix[0]) {
+	if (!strncmp(suffix,"derefidx_",strlen("derefidx_"))) {
+	  suffix+=strlen("derefidx_");
+	  // Now parse the derefence index term.
+	  // Skip any opening brackets
+	  if (suffix[0]=='(') {
+	    suffix++;
+	    int len=strlen(suffix);
+	    if (suffix[len-1]!=')') {
+	      fprintf(stderr,"Unbalanced brackets\n");
+	      exit(-1);
+	    }
+	    suffix[len-1]=0;
+	  }
+	  struct thing *t2=parse_thing(suffix);
+	}
+	printf("Trying to parse suffix '%s'\n",suffix);
+      }
+
+      if (suffix) {
+	// XXX - derference indexes will have to be supported here in time
+	fprintf(stderr,"Can't parse destination description suffix '_%s'.\n",suffix);
+	exit(-1);
+      }
+    }
+    break;
+  default:
+    fprintf(stderr,"Can't parse signedness description '%s'\n",&left[3]);
+    exit(-1);
+  }
+
+  left+=4;
+  printf("Remainder is '%s'\n",left);
+  
+  return;
+}
+    
+
 
 struct thing *parse_thing(char *left)
 {
@@ -170,61 +276,17 @@ struct thing *parse_thing(char *left)
   else if (left[0]=='p') {
     // It's a pointer, so 16 bits
     t->mem=1; t->bits=16;
+
+    t->pointer=1;
+
+    parse_thing_common(left,t);       
   }
   else if (left[0]=='v') {
-    // d/w/b for size
-    switch(left[1]) {
-    case 'd': t->bits=32; break;
-    case 'w': t->bits=16; break;
-    case 'b': t->bits=8; break;
-    default:
-      fprintf(stderr,"Can't parse size '%c'\n",left[1]);
-      exit(-1);
-    }
 
-    switch(left[2]) {
-    case 's': t->sign=1; break;
-    case 'u': t->sign=0; break;
-    default:
-      fprintf(stderr,"Can't parse signedness description '%c'\n",left[2]);
-      exit(-1);
-    }
-
-    switch(left[3]) {
-    case 'z':
-      t->name=&left[3];
-      if (strchr(t->name,'_')) {
-	char *suffix=strchr(t->name,'_');
-	suffix[0]=0;
-	suffix++;
-	if (!strncmp(suffix,"ror_",4)) {
-	  if (sscanf(&suffix[4],"%d",&t->shift)==1) {
-	    // Fixed numeric shift to the right
-	  } else {
-	    t->shift=1; // RIGHT
-	    t->shift_thing=parse_thing(&suffix[4]);
-	  }
-	}
-	else if (!strncmp(suffix,"_rol_",4)) {
-	  if (sscanf(&suffix[4],"%d",&t->shift)==1) {
-	    // Fixed numeric shift to the left
-	    t->shift=-t->shift;    
-	  } else {
-	    t->shift=-1; // LEFT
-	    t->shift_thing=parse_thing(&suffix[4]);
-	  }	
-	}
-	else {
-	  // XXX - derference indexes will have to be supported here in time
-	  fprintf(stderr,"Can't parse destination description suffix '_%s'.\n",suffix);
-	  exit(-1);
-	}
-      }
-      break;
-    default:
-      fprintf(stderr,"Can't parse signedness description '%s'\n",&left[3]);
-      exit(-1);
-    }
+    t->mem=1;
+    t->pointer=0;
+    parse_thing_common(left,t);   
+    
   }
   else {
     fprintf(stderr,"Don't know how to parse left argument '%s'\n",left);
@@ -241,20 +303,6 @@ int generate_assignment(char *left, char *right)
   l=parse_thing(left);
   r=parse_thing(right);
   
-  /*
-    The right value is more complex, as we can have a pile of levels of 
-    de-referencing to do. We'll add those later.
-
-    From Jesper:
-    J: Pointers are a bit tricky - especially since c1 and z1 adds some more complexity
-    J: c1 means the value is constant. So pbuc1 is a pointer to a byte - where the pointer itself is a constant address I. Memory
-    J: pbuz1 is a pointer to a byte where the pointer is stored on ZP
-    So there is an extra level of indirection for z’s
-    Me: So what does pptc1 mean exactly then?
-    J: Pointer to pointer (constant address) - so far pointers to pointers at not typed beyond that.    
-
-  */
-
   printf("lvalue is %d bits, target is %s\n",
 	 l->bits,l->name?l->name:"probably a register");
 
