@@ -151,7 +151,7 @@ void parse_thing_common(char *left,struct thing *t)
 
   */
 
-  fprintf(stderr,"Parsing '%s'\n",left);
+  //  fprintf(stderr,"Parsing '%s'\n",left);
   
   // d/w/b for size
   switch(left[1]) {
@@ -250,6 +250,7 @@ void parse_thing_common(char *left,struct thing *t)
 	  }
 	  //	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
 	  t->derefidx=parse_thing(suffix);
+	  t->deref++;
 	  suffix=NULL;
 	}
       }
@@ -419,6 +420,11 @@ int generate_assignment(char *left, char *right)
   // Do any setup we need, e.g., for pointer access
   if (l->deref>1||r->deref>1) {
     printf("ldy #0\n");
+    if (l->deref==3) {
+      // Read the pointer value
+      printf("lda {%s}\n",l->name);
+      printf("sta !+ +1\n");
+    }
   }
 
   if (r->inc==1&&!strcmp(r->name,l->name)
@@ -477,13 +483,21 @@ int generate_assignment(char *left, char *right)
 	    if (shift_offset+byte>=0) {
 	      printf("lda {%s}",r->name);
 	      if (byte+shift_offset) printf("+%d",byte+shift_offset);
+	      if (r->derefidx&&r->derefidx->reg_x) printf(",x");
+	      else if (r->derefidx&&r->derefidx->reg_x) printf(",y");
+	      else if (r->derefidx)
+		printf("[UNIMPLMENENTED DEREF]\n");
 	      printf("\n");
 	    }
 	  } else if (r->deref==2) {
 	    if (shift_offset+byte>=0) {
 	      printf("lda ({%s}),y\n",r->name);
 	    }
-	  } else if (r->deref>2) {
+	  } else if (r->deref==3) {
+	    if (shift_offset+byte>=0) {
+	      printf("UNIMPLEMENTED\n");
+	    }
+	  } else if (r->deref>3) {
 	    fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
 	    exit(-1);
 	  } else {
@@ -526,8 +540,12 @@ int generate_assignment(char *left, char *right)
 	    printf("\n");
 	  } else if (l->deref==2) {
 	    printf("sta ({%s}),y\n",l->name);
-	  } else if (l->deref>2) {
-	    fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
+	  } else if (l->deref==3) {
+	    // For triple derefence, we will have setup the target pointer
+	    // via self-modifying code
+	    printf("!: sta ($ff),y\n");
+	  } else if (l->deref>3) {
+	    fprintf(stderr,"ERROR: At most only three levels of dereference may be used.\n");
 	    exit(-1);
 	  } else {
 	    fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
