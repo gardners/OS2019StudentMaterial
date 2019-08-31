@@ -205,9 +205,10 @@ void parse_thing_common(char *left,struct thing *t)
 	    }
 	    suffix[len-1]=0;
 	  }
-	  struct thing *t2=parse_thing(suffix);
+	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
+	  t->derefidx=parse_thing(suffix);
+	  suffix=NULL;
 	}
-	printf("Trying to parse suffix '%s'\n",suffix);
       }
 
       if (suffix) {
@@ -233,6 +234,8 @@ void parse_thing_common(char *left,struct thing *t)
 struct thing *parse_thing(char *left)
 {
   struct thing *t=calloc(sizeof(struct thing),1);
+
+  fprintf(stderr,"Parsing '%s'\n",left);
   
   if(!strncmp(left,"_hi_",4)) {
     t->hi=1;
@@ -250,7 +253,7 @@ struct thing *parse_thing(char *left)
     t->inc--;
     left+=strlen("_dec_");
   }
-  while(!strncmp(left,"_deref_",8)) {
+  while(!strncmp(left,"_deref_",7)) {
     t->deref++;
     left+=strlen("_deref_");
   }
@@ -295,20 +298,50 @@ struct thing *parse_thing(char *left)
 
   return t;
 }   
-  
+
+void describe_thing(int depth,struct thing *t)
+{
+  for(int i=0;i<depth;i++) printf(" ");
+  if (t->reg_a) printf("reg_a");
+  if (t->reg_x) printf("reg_x");
+  if (t->reg_y) printf("reg_y");
+  printf(" bits=%d",t->bits);
+  if (t->hi) printf(" <"); 
+  if (t->lo) printf(" >");
+  if (t->inc) printf(" %-d",t->inc);
+  if (t->deref) {
+    printf(" ");
+    for(int i=0;i<t->deref;i++) printf("*");
+  }
+  if (t->sign) printf(" signed");
+  if (t->pointer) printf(" pointer");
+  if (t->mem) printf(" mem");
+  if (t->name) {
+    printf(" name=%s",t->name);
+  }
+  if (t->derefidx) {
+    printf("\n  deref:\n");
+    describe_thing(depth+6,t->derefidx);
+  }
+  if (t->shift_thing) {
+    printf("shift:\n");
+    describe_thing(depth+6,t->shift_thing);
+  }
+  printf("\n");
+}
+
 int generate_assignment(char *left, char *right)
 {
   struct thing *l,*r;
 
   l=parse_thing(left);
   r=parse_thing(right);
-  
-  printf("lvalue is %d bits, target is %s\n",
-	 l->bits,l->name?l->name:"probably a register");
 
-  printf("rvalue is %d bits, source is %s\n",
-	 r->bits,r->name?r->name:"probably a register");  
-  
+  printf("Left:\n");
+  describe_thing(0,l);
+  printf("Right:\n");
+  describe_thing(0,r);
+
   return 0;
 }
 
