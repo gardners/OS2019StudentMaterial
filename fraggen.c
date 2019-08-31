@@ -490,8 +490,73 @@ int generate_assignment(char *left, char *right)
 	}
 	
       }
-  }  
-  
+
+    if (r->shift) {
+      // Apply any remaining shifts to the target at the end
+      
+      for(int i=0;i<-r->shift;i++) {
+	
+	switch (l->deref) {
+	case 1:
+	  for(int b=1;b<=l->bytes;b++) {
+	    if (b==1)
+	      printf("asl {%s}",l->name);
+	    else
+	      printf("rol {%s}",l->name);
+	    if (b>1) printf("+%d",b-1);
+	    printf("\n");	    
+	  }
+	  break;
+	case 2:
+	  printf("ldy #%d\n",0);
+	  for(int b=1;b<=l->bytes;b++) {
+	    if (b==1)
+	      printf("asl ({%s}),y",l->name);
+	    else
+	      printf("rol ({%s}),y",l->name);
+	    if (b>1) printf("iny\n");
+	    printf("\n");	    
+	  }
+	  break;
+	default:
+	  printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
+	  break;
+      }
+
+
+      for(int i=0;i<r->shift;i++) {
+
+	switch (l->deref) {
+	case 1:
+	  for(int b=l->bytes;b;b--) {
+	    if (b==l->bytes)
+	      printf("lsr {%s}",l->name);
+	    else
+	      printf("ror {%s}",l->name);
+	    if (b>1) printf("+%d",b-1);
+	    printf("\n");	    
+	  }
+	  break;
+	case 2:
+	  printf("ldy #%d\n",l->bytes-1);
+	  for(int b=l->bytes;b;b--) {
+	    if (b==l->bytes)
+	      printf("lsr ({%s}),y",l->name);
+	    else
+	      printf("ror ({%s}),y",l->name);
+	    if (b>1) printf("dey\n");
+	    printf("\n");	    
+	  }
+	  break;
+	default:
+	  printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
+	  break;
+	}
+	
+      }
+      }  
+    }
+  } 
   return 0;
 }
 
