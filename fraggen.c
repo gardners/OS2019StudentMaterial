@@ -165,7 +165,9 @@ void parse_thing_common(char *left,struct thing *t)
   }
   
   switch(left[2]) {
-  case 't': t->sign=0; break;
+  case 't':
+    // I think this means that we copy the size from the source?
+    t->sign=0; t->bytes=99; break;
   case 's': t->sign=1; break;
   case 'u': t->sign=0; break;
   default:
@@ -408,6 +410,12 @@ int generate_assignment(char *left, char *right)
     
   */
 
+  if (l->bytes==99) l->bytes=r->bytes;
+  if (r->bytes==99) {
+    printf("ERROR: 't' tag to take source type cannot appear in rvalue\n");
+    exit(-1);
+  }
+  
   // Do any setup we need, e.g., for pointer access
   if (l->deref>1||r->deref>1) {
     printf("ldy #0\n");
