@@ -473,9 +473,11 @@ int generate_assignment(char *left, char *right)
 	  if (r->reg_a) {
 	    // Nothing to do
 	  } else if (r->reg_x) {
-	    printf("txa\n");
+	    if (l->reg_a)
+	      printf("txa\n");
 	  } else if (r->reg_y) {
-	    printf("tya\n");
+	    if (l->reg_a)
+	      printf("tya\n");
 	  } else if (r->deref==0) {
 	    if (shift_offset+byte>=0) {
 	      switch(byte) {
@@ -535,13 +537,18 @@ int generate_assignment(char *left, char *right)
 	  if (l->reg_a) {
 	    // Nothing to do
 	  } else if (l->reg_x) {
-	    printf("tax\n");
+	    if (r->reg_a)
+	      printf("tax\n");
 	  } else if (l->reg_y) {
-	    printf("tay\n");       
+	    if (r->reg_a)
+	      printf("tay\n");       
 	  } else if (l->deref==0) {
 	    printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
 	  } else if (l->deref==1) {
-	    printf("sta {%s}",l->name);
+	    if (r->reg_x) printf("stx {%s}",l->name);
+	    else if (r->reg_y) printf("sty {%s}",l->name);
+	    else printf("sta {%s}",l->name);
+	    
 	    if (byte) printf("+%d",byte);
 	    printf("\n");
 	  } else if (l->deref==2) {
