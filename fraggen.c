@@ -109,7 +109,39 @@ char *rvalue_name(int idx)
 
 int generate_fragment(char *name)
 {
-
+  /*
+    First check, is it an assignment or comparison+then ?
+  */
+  if (strchr(name,'=')) {
+    // Assignment
+    char left[1024];
+    char right[1024];
+    int offset;
+    if (sscanf(name,"%[^=]=%[^=]%n",left,right,&offset)!=2) {
+      fprintf(stderr,"Could not parse assignment fragment '%s' (couldn't separate left and right sides)\n",name);
+      exit(-1);
+    }
+    if (offset!=strlen(name)) {
+      fprintf(stderr,"Could not parse assignment fragment '%s' (junk at end of name)\n",name);
+      exit(-1);
+    }
+    
+  } else {
+    // Comparison + branch
+    char *then=strstr(name,"_then_");
+    if (!then) {
+      fprintf(stderr,"Could not parse fragment '%s' (neither assignment nor THEN fragment?)\n",name);
+      exit(-1);
+    }
+    int then_ofs=then-name;
+    char comparison[1024];
+    char *destination=then+strlen("_then_");
+    strcpy(comparison,name);
+    comparison[then_ofs]=0;
+    printf("Branch to <%s> if <%s>\n",destination,comparison);
+    
+  }
+  
   return 0;
 }
 
@@ -130,6 +162,10 @@ int main(int argc,char **argv)
   if (i!=RVALUE_FORMS) {
     fprintf(stderr,"RVALUE_FORMS should be %d, not %d. Please update source\n",i,RVALUE_FORMS);
     exit(-1);
+  }
+
+  if (argv[1]) {
+    generate_fragment(argv[1]);
   }
   
   return 0;
