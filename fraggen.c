@@ -208,7 +208,7 @@ void parse_thing_common(char *left,struct thing *t)
 	    }
 	    suffix[len-1]=0;
 	  }
-	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
+	  //	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
 	  t->derefidx=parse_thing(suffix);
 	  suffix=NULL;
 	}
@@ -374,6 +374,17 @@ int generate_assignment(char *left, char *right)
   if (l->deref>1||r->deref>1) {
     printf("ldy #0\n");
   }
+
+  if (r->inc==1&&!strcmp(r->name,l->name)
+      &&r->deref==1&&l->deref==1) {
+    // Short cut for INC
+    printf("inc {%s}\n",r->name);
+  } else if (r->inc==-1&&!strcmp(r->name,l->name)
+      &&r->deref==1&&l->deref==1) {
+    // Short cut for DEC
+    printf("dec {%s}\n",r->name);
+  }
+  else    
   
   for(int byte=0;byte<4;byte++)
     {
@@ -388,7 +399,7 @@ int generate_assignment(char *left, char *right)
       if (byte)
 	if (l->deref>1||r->deref>1)
 	  printf("iny\n");
-      
+
       if (byte<r->bytes) {
 	if (r->reg_a) {
 	  // Nothing to do
