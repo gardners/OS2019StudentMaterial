@@ -411,11 +411,11 @@ int generate_assignment(char *left, char *right)
     
   */
 
-  if (l->bytes==99) l->bytes=r->bytes;
   if (r->bytes==99) {
-    printf("ERROR: 't' tag to take source type cannot appear in rvalue\n");
-    exit(-1);
+    // If the rvalue is 't', then it is just a normal pointer
+    r->bytes=2;
   }
+  if (l->bytes==99) l->bytes=r->bytes;
   
   // Do any setup we need, e.g., for pointer access
   if (l->deref>1||r->deref>1) {
@@ -520,10 +520,10 @@ int generate_assignment(char *left, char *right)
 	if (r->inc) {
 	  if (!byte) printf("clc\n");
 	  switch(byte) {
-	  case 0: printf("adc #<{%s}\n",r->name); break;
-	  case 1: printf("adc #>{%s}\n",r->name); break;
-	  case 2: printf("adc #<{%s}>>16\n",r->name); break;
-	  case 3: printf("adc #>{%s}>>16\n",r->name); break;
+	  case 0: printf("adc #<$%x\n",r->inc); break;
+	  case 1: printf("adc #>$%x\n",r->inc); break;
+	  case 2: printf("adc #<$%x>>16\n",r->inc); break;
+	  case 3: printf("adc #>$%x>>16\n",r->inc); break;
 	  }	 
 	}
 	if (r->shift&&!r->shift_thing) {
@@ -547,11 +547,19 @@ int generate_assignment(char *left, char *right)
 	  } else if (l->deref==1) {
 	    if (r->reg_x) printf("stx {%s}",l->name);
 	    else if (r->reg_y) printf("sty {%s}",l->name);
-	    else printf("sta {%s}",l->name);
+	    else {
+	      switch(r->arg_op) {
+		// XXX Arg operations go here
+	      }
+	      printf("sta {%s}",l->name);
+	    }
 	    
 	    if (byte) printf("+%d",byte);
 	    printf("\n");
 	  } else if (l->deref==2) {
+	      switch(r->arg_op) {
+		// XXX Arg operations go here
+	      }
 	    printf("sta ({%s}),y\n",l->name);
 	  } else if (l->deref==3) {
 	    // For triple derefence, we will have setup the target pointer
