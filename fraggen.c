@@ -115,6 +115,7 @@ struct thing {
   int mem;
   int hi;
   int lo;
+  int inc;
   int deref;
   int sign;
   int shift;
@@ -134,6 +135,14 @@ struct thing *parse_thing(char *left)
   if(!strncmp(left,"_lo_",4)) {
     t->lo=1;
     left+=strlen("_lo_");
+  }
+  while(!strncmp(left,"_inc_",5)) {
+    t->inc++;
+    left+=strlen("_inc_");
+  }
+  while(!strncmp(left,"_dec_",5)) {
+    t->inc--;
+    left+=strlen("_dec_");
   }
   while(!strncmp(left,"_deref_",8)) {
     t->deref++;
