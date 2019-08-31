@@ -422,8 +422,14 @@ int generate_assignment(char *left, char *right)
     printf("ldy #0\n");
     if (l->deref==3) {
       // Read the pointer value
-      printf("lda {%s}\n",l->name);
-      printf("sta !+ +1\n");
+      // (avoiding the A register if that is the source value)
+      if (r->reg_a) {
+	printf("ldy {%s}\n",l->name);
+	printf("sty !+ +1\n");
+      } else {
+	printf("lda {%s}\n",l->name);
+	printf("sta !+ +1\n");
+      }
     }
   }
 
