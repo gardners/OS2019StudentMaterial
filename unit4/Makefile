@@ -3,25 +3,25 @@ all:	checkpoint4.1.bin
 pad:	pad.c
 	gcc -o pad pad.c
 
-userspace4.1.prg:	userspace4.1.kc pad
-	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
-	./pad userspace4.1.prg
-
-userspace4.2.prg:	userspace4.2.kc pad
-	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
-	./pad userspace4.2.prg
-
-userspace4.3.prg:	userspace4.3.kc myabi.kc pad
-	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
-	./pad userspace4.3.prg
-
-userspace4.4.prg:	userspace4.4.kc myabi.kc pad
-	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
-	./pad userspace4.4.prg
-
-userspace4.5.prg:	userspace4.5.kc myabi.kc pad
-	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
-	./pad userspace4.5.prg
+#userspace4.1.prg:	userspace4.1.kc pad
+#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+#	./pad userspace4.1.prg
+#
+#userspace4.2.prg:	userspace4.2.kc pad
+#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+#	./pad userspace4.2.prg
+#
+#userspace4.3.prg:	userspace4.3.kc myabi.kc pad
+#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+#	./pad userspace4.3.prg
+#
+#userspace4.4.prg:	userspace4.4.kc myabi.kc pad
+#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+#	./pad userspace4.4.prg
+#
+#userspace4.5.prg:	userspace4.5.kc myabi.kc pad
+#	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+#	./pad userspace4.5.prg
 
 checkpoint4.1.bin:	checkpoint4.1.kc
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
