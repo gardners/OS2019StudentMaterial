@@ -571,10 +571,22 @@ int generate_assignment(char *left, char *right)
       &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
     // Short cut for INC
     printf("inc {%s}\n",r->name);
+  } else if (r->inc==1&&!strcmp(r->name,l->name)
+      &&r->deref==1&&l->deref==1&&r->bytes==2&&l->bytes) {
+    // Short cut for INC
+    printf("inc {%s}\n",r->name);
+    printf("bne !+\n");
+    printf("inc {%s}+1\n",r->name);
   } else if (r->inc==-1&&!strcmp(r->name,l->name)
       &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
     // Short cut for DEC
     printf("dec {%s}\n",r->name);
+  } else if (r->inc==-1&&!strcmp(r->name,l->name)
+      &&r->deref==1&&l->deref==1&&r->bytes==2&&l->bytes) {
+    // Short cut for DEC
+    printf("dec {%s}\n",r->name);
+    printf("bne !+\n");
+    printf("dec {%s}+1\n",r->name);
   }
   else {
 
