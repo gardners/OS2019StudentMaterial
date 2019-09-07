@@ -493,7 +493,17 @@ int generate_assignment(char *left, char *right)
     // If the rvalue is 't', then it is just a normal pointer
     r->bytes=2;
   }
-  if (l->bytes==99) l->bytes=r->bytes;
+  if (l->bytes==99) {
+    //    printf("copying l->bytes from r->bytes\n");
+    if (!r->pointer||r->deref)
+      l->bytes=r->bytes;
+    else {
+      // Pointers
+      r->bytes=2;
+      l->bytes=2;
+    }
+      
+  }
 
   //  describe_thing(0,l);
   
@@ -577,6 +587,7 @@ int generate_assignment(char *left, char *right)
     printf("inc {%s}\n",r->name);
     printf("bne !+\n");
     printf("inc {%s}+1\n",r->name);
+    printf("!:\n");
   } else if (r->inc==-1&&!strcmp(r->name,l->name)
       &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
     // Short cut for DEC
@@ -587,6 +598,7 @@ int generate_assignment(char *left, char *right)
     printf("dec {%s}\n",r->name);
     printf("bne !+\n");
     printf("dec {%s}+1\n",r->name);
+    printf("!:\n");
   }
   else {
 
@@ -603,7 +615,9 @@ int generate_assignment(char *left, char *right)
     else {
       for(int byte=0;byte<4;byte++)
 	{
-	  //      printf("; byte %d, deref = %d,%d\n",byte,l->deref,r->deref);
+	  if (0)
+	    printf("; byte %d, deref = %d,%d.  lbytes=%d, rbytes=%d\n",
+		   byte,l->deref,r->deref,l->bytes,r->bytes);
 	  
 	  // Stop once we have no more bytes to deal with
 	  if (l->bytes<=byte&&r->bytes<=byte) break;
