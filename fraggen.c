@@ -252,9 +252,6 @@ void parse_thing_common(char *left,struct thing *t)
       t->arg_thing=parse_thing(&suffix[6]);
       suffix=NULL;	
     }
-    else {
-      printf("unhandled suffix '%s'\n",suffix);
-    }
     if (suffix&&suffix[0]) {
       if (!strncmp(suffix,"derefidx_",strlen("derefidx_"))) {
 	suffix+=strlen("derefidx_");
@@ -475,20 +472,52 @@ int generate_assignment(char *left, char *right)
     r->bytes=2;
   }
   if (l->bytes==99) l->bytes=r->bytes;
+
+  //  describe_thing(0,l);
   
   // Do any setup we need, e.g., for pointer access
   if (l->deref>1||r->deref>1) {
-    printf("ldy #0\n");
-    if (l->deref==3) {
-      // Read the pointer value
-      // (avoiding the A register if that is the source value)
-      if (r->reg_a) {
-	printf("ldy {%s}\n",l->name);
-	printf("sty !+ +1\n");
+    //    printf("deref=%d\n",l->deref);
+    switch(l->deref) {
+    case 1:
+      break;
+    case 2:
+      if (l->derefidx) {
+	// We need to first add the deref index to
+	// the address
+	if (r->reg_a) {
+	  // Avoid using A, since we want to use it
+	  if (!l->derefidx->reg_y)
+	    printf("ldy {%s}\n",l->derefidx->name);
+	  printf("ldx {%s},y\n",l->name);
+	  // Use self-modifying code to re-write pointer directly into
+	  // target instruction
+	  printf("stx !+ + 1\n");
+	  printf("ldx {%s}+1,y\n",l->name);
+	  printf("stx !+ + 2\n");
+	  
+	} else {
+	  
+	}
       } else {
-	printf("lda {%s}\n",l->name);
-	printf("sta !+ +1\n");
+	// De-ref pointer without offset
+	// This means we can just use lda ($nn),y
       }
+      break;
+    case 3:
+      break;
+    default:
+      printf("ERROR: Too many dereferences\n");
+    }
+  } else if (l->deref==3) {
+    // Read the pointer value
+    // (avoiding the A register if that is the source value)
+    if (r->reg_a) {
+      printf("ldy {%s}\n",l->name);
+      printf("sty !+ +1\n");
+    } else {
+      printf("lda {%s}\n",l->name);
+      printf("sta !+ +1\n");
     }
   }
 
@@ -615,7 +644,10 @@ int generate_assignment(char *left, char *right)
 	      // XXX Arg operations go here
 	      expand_op(r);
 
-	      printf("sta ({%s}),y\n",l->name);
+	      if (!l->derefidx) 
+		printf("sta ({%s}),y\n",l->name);
+	      else
+		printf("!: sta $ffff\n");
 	    } else if (l->deref==3) {
 	      // For triple derefence, we will have setup the target pointer
 	      // via self-modifying code
