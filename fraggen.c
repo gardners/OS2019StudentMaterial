@@ -253,9 +253,9 @@ void parse_thing_common(char *left,struct thing *t)
       t->arg_thing=parse_thing(&suffix[5]);
       suffix=NULL;	
     }
-    else if (!strncmp(suffix,"plus_",6)) {
+    else if (!strncmp(suffix,"plus_",5)) {
       t->arg_op=OP_PLUS;
-      t->arg_thing=parse_thing(&suffix[6]);
+      t->arg_thing=parse_thing(&suffix[5]);
       suffix=NULL;	
     }
     else if (!strncmp(suffix,"minus_",6)) {
@@ -464,25 +464,58 @@ void expand_op(int byte,struct thing *r)
       break;
     case OP_MINUS:
       if (!byte) printf("sec\n");
-      if (!r->arg_thing->deref) {
+      switch (r->arg_thing->deref) {
+      case 0:
 	switch(byte) {
 	case 0: printf("sbc #<%s\n",name); break;
 	case 1: printf("sbc #>%s\n",name); break;
 	case 2: printf("sbc #<%s>>16\n",name); break;
 	case 3: printf("sbc #>%s>>16\n",name); break;
 	}
-      } else {
+	break;
+      case 1:
 	switch(byte) {
 	case 0: printf("sbc %s\n",name); break;
 	case 1: printf("sbc %s+1\n",name); break;
 	case 2: printf("sbc %s+2\n",name); break;
 	case 3: printf("sbc %s+3\n",name); break;
 	}
+	break;
+      default:
+	printf("ERROR: not implemented.\n");
       }      
       break;
     case OP_PLUS:
-      printf("clc\n");
-      printf("adc %s\n",name);
+      if (!byte) printf("clc\n");
+      switch (r->arg_thing->deref) {
+      case 0:
+	switch(byte) {
+	case 0: printf("adc #<%s\n",name); break;
+	case 1: printf("adc #>%s\n",name); break;
+	case 2: printf("adc #<%s>>16\n",name); break;
+	case 3: printf("adc #>%s>>16\n",name); break;
+	}
+	break;
+      case 1:
+	switch(byte) {
+	case 0: printf("adc %s\n",name); break;
+	case 1: printf("adc %s+1\n",name); break;
+	case 2: printf("adc %s+2\n",name); break;
+	case 3: printf("adc %s+3\n",name); break;
+	}
+	break;
+      case 2:
+	switch(byte) {
+	case 0: printf("adc (%s),y\n",name); break;
+	case 1: printf("adc (%s),y\n",name); break;
+	case 2: printf("adc (%s),y\n",name); break;
+	case 3: printf("adc (%s),y\n",name); break;
+	}
+	break;
+      default:
+	printf("ERROR: not implemented.\n");
+      }      
+      break;
       break;
     }
   }
