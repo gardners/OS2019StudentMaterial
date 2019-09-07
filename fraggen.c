@@ -591,6 +591,41 @@ int generate_assignment(char *left, char *right)
 	if (r->shift_thing->bytes!=1) {
 	  printf("ERROR: shifting by constant must be 8-bit constant.\n");
 	}
+
+	// If left and right sides are different, then copy initial value of
+	// right side to left
+	if (strcmp(l->name,r->name)|(l->deref!=r->deref)) {
+	  for(int b=1;b<=l->bytes;b++) {
+	    switch (r->deref) {
+	    case 1:
+	      printf("lda {%s}",r->name);
+	      if (b>1) printf("+%d",b-1);
+	      printf("\n");
+	      break;
+	    case 2:
+	      printf("lda ({%s}),y\n",r->name);
+	      break;
+	    default:
+	      printf("ERROR: Max supported derefence level = 2\n");
+	      break;
+	    }
+	    switch (l->deref) {
+	    case 1:
+	      printf("sta {%s}",r->name);
+	      if (b>1) printf("+%d",b-1);
+	      printf("\n");
+	      break;
+	    case 2:
+	      printf("sta ({%s}),y\n",r->name);
+	      break;
+	    default:
+	      printf("ERROR: Max supported derefence level = 2\n");
+	      break;
+	    }
+	    if (l->deref>1||r->deref>1) printf("iny\n");
+	  }
+	}
+	
 	// Should thiss be #{c1} or {c1}?
 	printf("ldx #{c1}\n");
 	printf("!:\n");
