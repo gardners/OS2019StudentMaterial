@@ -341,6 +341,7 @@ struct thing *parse_thing(char *left)
     t->mem=1; t->bytes=2;
 
     t->pointer=1;
+    if (left[1]=='p') t->pointer=2;
 
     parse_thing_common(left,t);       
   }
@@ -495,16 +496,18 @@ int generate_assignment(char *left, char *right)
   }
   if (l->bytes==99) {
     //    printf("copying l->bytes from r->bytes\n");
-    if (!r->pointer||r->deref)
-      l->bytes=r->bytes;
-    else {
-      // Pointers
-      r->bytes=2;
-      l->bytes=2;
-    }
-      
+    l->bytes=r->bytes;
   }
 
+  //  printf("%d %d %d %d\n",l->pointer,l->deref,r->pointer,r->deref);
+  if ((r->pointer>r->deref)||
+      (l->pointer>l->deref)) {
+    // Pointers
+    //    printf("Inferring pointers.\n");
+    r->bytes=2;
+    l->bytes=2;
+  }
+  
   //  describe_thing(0,l);
   
   // Do any setup we need, e.g., for pointer access
