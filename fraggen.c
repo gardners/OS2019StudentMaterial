@@ -507,6 +507,13 @@ int generate_assignment(char *left, char *right)
       }
       break;
     case 3:
+      if (r->reg_a) {
+	printf("ldy {%s}\n",l->name);
+	printf("sty !+ +1\n");
+      } else {
+	printf("lda {%s}\n",l->name);
+	printf("sta !+ +1\n");
+      }
       printf("ldy #0\n");
       break;
     default:
