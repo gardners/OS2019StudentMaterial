@@ -740,7 +740,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if (r->inc==-1) {
 		switch(byte) {
 		case 0: printf("sbc #1\n"); break;
-		default: printf("sbc #0\n",-r->inc); break;
+		default: printf("sbc #0\n"); break;
 		}
 	      } else {
 		switch(byte) {
