@@ -360,10 +360,10 @@ struct thing *parse_thing(char *left)
     strcpy(name,&left[8]);
     char *close=strchr(&left[1],')');
     name[close-left-8]=0;
-    printf("early deref. name='%s',remainder='%s'\n",name,&close[1]);
+    //    printf("early deref. name='%s',remainder='%s'\n",name,&close[1]);
     char rewritten[1024];
     snprintf(rewritten,1024,"%s%s",name,&close[1]);
-    printf("Parsing rewritten form '%s'\n",rewritten);
+    //    printf("Parsing rewritten form '%s'\n",rewritten);
     struct thing *t2=parse_thing(rewritten);
     if (!t2) {
       printf("Failed to parse re-written fragment '%s'\n",rewritten);
