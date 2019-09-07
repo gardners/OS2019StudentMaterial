@@ -450,195 +450,274 @@ int generate_assignment(char *left, char *right)
     l->shift-=shift_offset*8;
     
     //    printf("shift_offset=%d, r->shift=%d\n",shift_offset,r->shift);
-    
-    for(int byte=0;byte<4;byte++)
-      {
-	//      printf("; byte %d, deref = %d,%d\n",byte,l->deref,r->deref);
-	
-	// Stop once we have no more bytes to deal with
-	if (l->bytes<=byte&&r->bytes<=byte) break;
-	
-	// only increment Y if there are more bytes coming,
-	// and we have sufficient dereferencing to make it needed
-	// i.e., on all but the first round
-	if (byte)
-	  if (l->deref>1||r->deref>1)
-	    printf("iny\n");
-	
-	if (!byte) {
-	  if (shift_offset<0) printf("lda #0\n");
-	}
-	
-	if (byte<r->bytes) {
-	  if (r->reg_a) {
-	    // Nothing to do
-	  } else if (r->reg_x) {
-	    if (l->reg_a)
-	      printf("txa\n");
-	  } else if (r->reg_y) {
-	    if (l->reg_a)
-	      printf("tya\n");
-	  } else if (r->deref==0) {
-	    if (shift_offset+byte>=0) {
-	      switch(byte) {
-	      case 0: printf("lda #<{%s}\n",r->name); break;
-	      case 1: printf("lda #>{%s}\n",r->name); break;
-	      case 2: printf("lda #<{%s}>>16\n",r->name); break;
-	      case 3: printf("lda #>{%s}>>16\n",r->name); break;
-	      }
-	    }
-	  } else if (r->deref==1) {
-	    if (shift_offset+byte>=0) {
-	      printf("lda {%s}",r->name);
-	      if (byte+shift_offset) printf("+%d",byte+shift_offset);
-	      if (r->derefidx&&r->derefidx->reg_x) printf(",x");
-	      else if (r->derefidx&&r->derefidx->reg_x) printf(",y");
-	      else if (r->derefidx)
-		printf("[UNIMPLMENENTED DEREF]\n");
-	      printf("\n");
-	    }
-	  } else if (r->deref==2) {
-	    if (shift_offset+byte>=0) {
-	      printf("lda ({%s}),y\n",r->name);
-	    }
-	  } else if (r->deref==3) {
-	    if (shift_offset+byte>=0) {
-	      printf("UNIMPLEMENTED\n");
-	    }
-	  } else if (r->deref>3) {
-	    fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
-	    exit(-1);
-	  } else {
-	    fprintf(stderr,"ERROR: Don't know how to read from this source.\n");
-	    exit(-1);
-	  }
-	} else {
-	  if (byte==r->bytes) printf("lda #$00\n");
-	}
-	
-	// Implement addition/subtraction of constants other than 1 and -1
-	if (r->inc) {
-	  if (!byte) printf("clc\n");
-	  switch(byte) {
-	  case 0: printf("adc #<$%x\n",r->inc); break;
-	  case 1: printf("adc #>$%x\n",r->inc); break;
-	  case 2: printf("adc #<$%x>>16\n",r->inc); break;
-	  case 3: printf("adc #>$%x>>16\n",r->inc); break;
-	  }	 
-	}
-	if (r->shift&&!r->shift_thing) {
-	}
-	if (r->shift&&r->shift_thing) {
-	  printf("ERROR: Shifting by non-constant amounts not implemented.\n");
-	}
-	
-	
-	if (byte<l->bytes) {
-	  if (l->reg_a) {
-	    // Nothing to do
-	  } else if (l->reg_x) {
-	    if (r->reg_a)
-	      printf("tax\n");
-	  } else if (l->reg_y) {
-	    if (r->reg_a)
-	      printf("tay\n");       
-	  } else if (l->deref==0) {
-	    printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
-	  } else if (l->deref==1) {
-	    if (r->reg_x) printf("stx {%s}",l->name);
-	    else if (r->reg_y) printf("sty {%s}",l->name);
-	    else {
-	      switch(r->arg_op) {
-		// XXX Arg operations go here
-	      }
-	      printf("sta {%s}",l->name);
-	    }
-	    
-	    if (byte) printf("+%d",byte);
-	    printf("\n");
-	  } else if (l->deref==2) {
-	      switch(r->arg_op) {
-		// XXX Arg operations go here
-	      }
-	    printf("sta ({%s}),y\n",l->name);
-	  } else if (l->deref==3) {
-	    // For triple derefence, we will have setup the target pointer
-	    // via self-modifying code
-	    printf("!: sta ($ff),y\n");
-	  } else if (l->deref>3) {
-	    fprintf(stderr,"ERROR: At most only three levels of dereference may be used.\n");
-	    exit(-1);
-	  } else {
-	    fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
-	    exit(-1);
-	  }
-	}
-	
-      }
 
+    if (r->shift&&r->shift_thing) {
+      // Handled further down
+    }
+    else {
+      for(int byte=0;byte<4;byte++)
+	{
+	  //      printf("; byte %d, deref = %d,%d\n",byte,l->deref,r->deref);
+	  
+	  // Stop once we have no more bytes to deal with
+	  if (l->bytes<=byte&&r->bytes<=byte) break;
+	  
+	  // only increment Y if there are more bytes coming,
+	  // and we have sufficient dereferencing to make it needed
+	  // i.e., on all but the first round
+	  if (byte)
+	    if (l->deref>1||r->deref>1)
+	      printf("iny\n");
+	  
+	  if (!byte) {
+	    if (shift_offset<0) printf("lda #0\n");
+	  }
+	  
+	  if (byte<r->bytes) {
+	    if (r->reg_a) {
+	      // Nothing to do
+	    } else if (r->reg_x) {
+	      if (l->reg_a)
+		printf("txa\n");
+	    } else if (r->reg_y) {
+	      if (l->reg_a)
+		printf("tya\n");
+	    } else if (r->deref==0) {
+	      if (shift_offset+byte>=0) {
+		switch(byte) {
+		case 0: printf("lda #<{%s}\n",r->name); break;
+		case 1: printf("lda #>{%s}\n",r->name); break;
+		case 2: printf("lda #<{%s}>>16\n",r->name); break;
+		case 3: printf("lda #>{%s}>>16\n",r->name); break;
+		}
+	      }
+	    } else if (r->deref==1) {
+	      if (shift_offset+byte>=0) {
+		printf("lda {%s}",r->name);
+		if (byte+shift_offset) printf("+%d",byte+shift_offset);
+		if (r->derefidx&&r->derefidx->reg_x) printf(",x");
+		else if (r->derefidx&&r->derefidx->reg_x) printf(",y");
+		else if (r->derefidx)
+		  printf("[UNIMPLMENENTED DEREF]\n");
+		printf("\n");
+	      }
+	    } else if (r->deref==2) {
+	      if (shift_offset+byte>=0) {
+		printf("lda ({%s}),y\n",r->name);
+	      }
+	    } else if (r->deref==3) {
+	      if (shift_offset+byte>=0) {
+		printf("UNIMPLEMENTED\n");
+	      }
+	    } else if (r->deref>3) {
+	      fprintf(stderr,"ERROR: At most only two levels of dereference may be used.\n");
+	      exit(-1);
+	    } else {
+	      fprintf(stderr,"ERROR: Don't know how to read from this source.\n");
+	      exit(-1);
+	    }
+	  } else {
+	    if (byte==r->bytes) printf("lda #$00\n");
+	  }
+	  
+	  // Implement addition/subtraction of constants other than 1 and -1
+	  if (r->inc) {
+	    if (!byte) printf("clc\n");
+	    switch(byte) {
+	    case 0: printf("adc #<$%x\n",r->inc); break;
+	    case 1: printf("adc #>$%x\n",r->inc); break;
+	    case 2: printf("adc #<$%x>>16\n",r->inc); break;
+	    case 3: printf("adc #>$%x>>16\n",r->inc); break;
+	    }	 
+	  }
+	  
+	  if (byte<l->bytes) {
+	    if (l->reg_a) {
+	      // Nothing to do
+	    } else if (l->reg_x) {
+	      if (r->reg_a)
+		printf("tax\n");
+	    } else if (l->reg_y) {
+	      if (r->reg_a)
+		printf("tay\n");       
+	    } else if (l->deref==0) {
+	      printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
+	    } else if (l->deref==1) {
+	      if (r->reg_x) printf("stx {%s}",l->name);
+	      else if (r->reg_y) printf("sty {%s}",l->name);
+	      else {
+		switch(r->arg_op) {
+		  // XXX Arg operations go here
+		}
+		printf("sta {%s}",l->name);
+	      }
+	      
+	      if (byte) printf("+%d",byte);
+	      printf("\n");
+	    } else if (l->deref==2) {
+	      switch(r->arg_op) {
+		// XXX Arg operations go here
+	      }
+	      printf("sta ({%s}),y\n",l->name);
+	    } else if (l->deref==3) {
+	      // For triple derefence, we will have setup the target pointer
+	      // via self-modifying code
+	      printf("!: sta ($ff),y\n");
+	    } else if (l->deref>3) {
+	      fprintf(stderr,"ERROR: At most only three levels of dereference may be used.\n");
+	      exit(-1);
+	    } else {
+	      fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
+	      exit(-1);
+	    }
+	  }
+	  
+	}
+    }
+    
     if (r->shift) {
       // Apply any remaining shifts to the target at the end
-      
-      for(int i=0;i<-r->shift;i++) {
-	
-	switch (l->deref) {
-	case 1:
-	  for(int b=1;b<=l->bytes;b++) {
-	    if (b==1)
-	      printf("asl {%s}",l->name);
-	    else
-	      printf("rol {%s}",l->name);
-	    if (b>1) printf("+%d",b-1);
-	    printf("\n");	    
-	  }
-	  break;
-	case 2:
-	  printf("ldy #%d\n",0);
-	  for(int b=1;b<=l->bytes;b++) {
-	    if (b==1)
-	      printf("asl ({%s}),y",l->name);
-	    else
-	      printf("rol ({%s}),y",l->name);
-	    if (b>1) printf("iny\n");
-	    printf("\n");	    
-	  }
-	  break;
-	default:
-	  printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
-	  break;
-      }
 
+      if (r->shift_thing) {
+	// Non-constant shift
+	/*	printf("ERROR: Non-constant shift not supported.\n");
+		printf("   shift=%d, shift thing = ",r->shift);
+		describe_thing(0,r->shift_thing); */
 
-      for(int i=0;i<r->shift;i++) {
+	// Get absolute count of shift
+	int count=r->shift;
+	if (count<0) count=-count;
 
-	switch (l->deref) {
-	case 1:
-	  for(int b=l->bytes;b;b--) {
-	    if (b==l->bytes)
-	      printf("lsr {%s}",l->name);
-	    else
-	      printf("ror {%s}",l->name);
-	    if (b>1) printf("+%d",b-1);
-	    printf("\n");	    
-	  }
-	  break;
-	case 2:
-	  printf("ldy #%d\n",l->bytes-1);
-	  for(int b=l->bytes;b;b--) {
-	    if (b==l->bytes)
-	      printf("lsr ({%s}),y",l->name);
-	    else
-	      printf("ror ({%s}),y",l->name);
-	    if (b>1) printf("dey\n");
-	    printf("\n");	    
-	  }
-	  break;
-	default:
-	  printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
-	  break;
+	if (r->shift_thing->bytes!=1) {
+	  printf("ERROR: shifting by constant must be 8-bit constant.\n");
 	}
-	
-      }
+	// Should thiss be #{c1} or {c1}?
+	printf("ldx #{c1}\n");
+	printf("!:\n");
+	if (r->shift<0) {
+	  switch (l->deref) {
+	  case 1:
+	    for(int b=1;b<=l->bytes;b++) {
+	      if (b==1)
+		printf("asl {%s}",l->name);
+	      else
+		printf("rol {%s}",l->name);
+	      if (b>1) printf("+%d",b-1);
+	      printf("\n");	    
+	    }
+	    break;
+	  case 2:
+	    printf("ldy #%d\n",0);
+	    for(int b=1;b<=l->bytes;b++) {
+	      if (b==1)
+		printf("asl ({%s}),y",l->name);
+	      else
+		printf("rol ({%s}),y",l->name);
+	      if (b>1) printf("iny\n");
+	      printf("\n");	    
+	    }
+	    break;
+	  default:
+	    printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
+	    break;
+	  }
+
+	} else {
+	  switch (l->deref) {
+	  case 1:
+	    for(int b=l->bytes;b;b--) {
+	      if (b==l->bytes)
+		printf("lsr {%s}",l->name);
+	      else
+	      printf("ror {%s}",l->name);
+	      if (b>1) printf("+%d",b-1);
+	      printf("\n");	    
+	    }
+	    break;
+	  case 2:
+	    printf("ldy #%d\n",l->bytes-1);
+	    for(int b=l->bytes;b;b--) {
+	      if (b==l->bytes)
+		printf("lsr ({%s}),y",l->name);
+	      else
+		printf("ror ({%s}),y",l->name);
+	      if (b>1) printf("dey\n");
+	      printf("\n");	    
+	    }
+	    break;
+	  default:
+	    printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
+	    break;
+	  }
+	  
+	}
+	printf("dex\n");
+	printf("bne !-\n");
+	  
+      } else {
+
+	// Handle constant shift left
+	for(int i=0;i<-r->shift;i++) {
+	  
+	  switch (l->deref) {
+	  case 1:
+	    for(int b=1;b<=l->bytes;b++) {
+	      if (b==1)
+		printf("asl {%s}",l->name);
+	      else
+		printf("rol {%s}",l->name);
+	      if (b>1) printf("+%d",b-1);
+	      printf("\n");	    
+	    }
+	    break;
+	  case 2:
+	    printf("ldy #%d\n",0);
+	    for(int b=1;b<=l->bytes;b++) {
+	      if (b==1)
+		printf("asl ({%s}),y",l->name);
+	      else
+		printf("rol ({%s}),y",l->name);
+	      if (b>1) printf("iny\n");
+	      printf("\n");	    
+	    }
+	    break;
+	  default:
+	    printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
+	    break;
+	  }
+	}
+
+	// Handle constant shift right
+	for(int i=0;i<r->shift;i++) {
+	  
+	  switch (l->deref) {
+	  case 1:
+	    for(int b=l->bytes;b;b--) {
+	      if (b==l->bytes)
+		printf("lsr {%s}",l->name);
+	      else
+	      printf("ror {%s}",l->name);
+	      if (b>1) printf("+%d",b-1);
+	      printf("\n");	    
+	    }
+	    break;
+	  case 2:
+	    printf("ldy #%d\n",l->bytes-1);
+	    for(int b=l->bytes;b;b--) {
+	      if (b==l->bytes)
+		printf("lsr ({%s}),y",l->name);
+	      else
+		printf("ror ({%s}),y",l->name);
+	      if (b>1) printf("dey\n");
+	      printf("\n");	    
+	    }
+	    break;
+	  default:
+	    printf("ERROR: Shifting of non-dereferenced/excessively-deferencened targets not supported.\n");
+	    break;
+	  }
+	  
+	}
       }  
     }
   } 
