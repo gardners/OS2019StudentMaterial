@@ -718,7 +718,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      exit(-1);
 	    }
 	  } else {
-	    if (byte==r->bytes) printf("lda #$00\n");
+	    if (byte==r->bytes) printf("lda #0\n");
 	  }
 	  
 	  // Implement addition/subtraction of constants other than 1 and -1
