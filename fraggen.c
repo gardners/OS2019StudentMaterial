@@ -123,6 +123,7 @@ struct thing {
   int lo;
   int inc;
   int deref;
+  int early_deref;
   int sign;
   int shift;
   int pointer;
@@ -350,7 +351,28 @@ struct thing *parse_thing(char *left)
     parse_thing_common(left,t);   
     
   }
-  else {
+  else if (!strncmp(left,"(_deref_",8)) {
+    // This means we have something we have to derefence first
+    // We can handle this by first resolving the thing in brackets,
+    // and then re-writing the remainder to something that we can
+    // process
+    char name[1024];
+    strcpy(name,&left[8]);
+    char *close=strchr(&left[1],')');
+    name[close-left-8]=0;
+    printf("early deref. name='%s',remainder='%s'\n",name,&close[1]);
+    char rewritten[1024];
+    snprintf(rewritten,1024,"%s%s",name,&close[1]);
+    printf("Parsing rewritten form '%s'\n",rewritten);
+    struct thing *t2=parse_thing(rewritten);
+    if (!t2) {
+      printf("Failed to parse re-written fragment '%s'\n",rewritten);
+    }
+    free(t);
+    t=t2;
+    t->early_deref++;
+    t->deref++;
+  }   else {
     fprintf(stderr,"Don't know how to parse left argument '%s'\n",left);
     exit(-1);
   }
@@ -480,10 +502,10 @@ int generate_assignment(char *left, char *right)
     //    printf("deref=%d\n",l->deref);
     switch(l->deref) {
     case 1:
-      printf("ldy #0\n");
+      printf("ldy #0 ; one\n");
       break;
     case 2:
-      if (l->derefidx) {
+      if (l->derefidx&&!l->early_deref) {
 	// We need to first add the deref index to
 	// the address
 	if (r->reg_a) {
@@ -503,7 +525,21 @@ int generate_assignment(char *left, char *right)
       } else {
 	// De-ref pointer without offset
 	// This means we can just use lda ($nn),y
-	printf("ldy #0\n");
+	if (!l->derefidx||!l->derefidx->reg_y)
+	  printf("ldy #0\n");
+	if (l->early_deref) {
+	  if (r->reg_a) {
+	    printf("ldx {%s}\n",l->name);
+	    printf("stx $fe\n");
+	    printf("ldx {%s}+1\n",l->name);
+	    printf("stx $ff\n");
+	  } else {
+	    printf("lda {%s}\n",l->name);
+	    printf("sta $fe\n");
+	    printf("lda {%s}+1\n",l->name);
+	    printf("sta $ff\n");
+	  }
+	}
       }
       break;
     case 3:
@@ -654,8 +690,12 @@ int generate_assignment(char *left, char *right)
 	      // XXX Arg operations go here
 	      expand_op(r);
 
-	      if (!l->derefidx) 
-		printf("sta ({%s}),y\n",l->name);
+	      if (!l->derefidx||l->early_deref)  {
+		if (l->early_deref) 
+		  printf("sta ($fe),y\n");
+		else
+		  printf("sta ({%s}),y\n",l->name);
+	      }
 	      else
 		printf("!: sta $ffff\n");
 	    } else if (l->deref==3) {
