@@ -480,6 +480,7 @@ int generate_assignment(char *left, char *right)
     //    printf("deref=%d\n",l->deref);
     switch(l->deref) {
     case 1:
+      printf("ldy #0\n");
       break;
     case 2:
       if (l->derefidx) {
@@ -502,9 +503,11 @@ int generate_assignment(char *left, char *right)
       } else {
 	// De-ref pointer without offset
 	// This means we can just use lda ($nn),y
+	printf("ldy #0\n");
       }
       break;
     case 3:
+      printf("ldy #0\n");
       break;
     default:
       printf("ERROR: Too many dereferences\n");
@@ -750,7 +753,7 @@ int generate_assignment(char *left, char *right)
 	    }
 	    break;
 	  case 2:
-	    printf("ldy #%d\n",0);
+	    printf("ldy #0\n");
 	    for(int b=1;b<=l->bytes;b++) {
 	      if (b==1)
 		printf("asl ({%s}),y",l->name);
@@ -814,7 +817,7 @@ int generate_assignment(char *left, char *right)
 	    }
 	    break;
 	  case 2:
-	    printf("ldy #%d\n",0);
+	    printf("ldy #0\n");
 	    for(int b=1;b<=l->bytes;b++) {
 	      if (b==1)
 		printf("asl ({%s}),y",l->name);
