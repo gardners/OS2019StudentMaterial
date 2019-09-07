@@ -441,7 +441,7 @@ void expand_op(struct thing *r)
       printf("and %s\n",name);
       break;
     case OP_OR:
-      printf("or %s\n",name);
+      printf("ora %s\n",name);
       break;
     case OP_XOR:
       printf("eor %s\n",name);
@@ -530,9 +530,9 @@ int generate_assignment(char *left, char *right)
 	  printf("ldx {%s},y\n",l->name);
 	  // Use self-modifying code to re-write pointer directly into
 	  // target instruction
-	  printf("stx !+ + 1\n");
+	  printf("stx !+ +1\n");
 	  printf("ldx {%s}+1,y\n",l->name);
-	  printf("stx !+ + 2\n");
+	  printf("stx !+ +2\n");
 	  
 	} else {
 	  
@@ -558,14 +558,25 @@ int generate_assignment(char *left, char *right)
       }
       break;
     case 3:
-      if (r->reg_a) {
-	printf("ldy {%s}\n",l->name);
-	printf("sty !+ +1\n");
-      } else {
-	printf("lda {%s}\n",l->name);
+      if (l->derefidx) {
+	if (r->reg_a) printf("pha\n");
+	printf("ldy #{%s}\n",l->derefidx->name);
+	printf("lda ({%s}),y\n",l->name);
 	printf("sta !+ +1\n");
+	printf("iny\n");
+	printf("lda ({%s}),y\n",l->name);
+	printf("sta !+ +2\n");
+	if (r->reg_a) printf("pla\n");
+      } else {
+	if (r->reg_a) {	
+	  printf("ldy {%s}\n",l->name);
+	  printf("sty !+ +1\n");
+	} else {
+	  printf("lda {%s}\n",l->name);
+	  printf("sta !+ +1\n");
+	}
+	printf("ldy #0\n");
       }
-      printf("ldy #0\n");
       break;
     default:
       printf("ERROR: Too many dereferences\n");
@@ -732,7 +743,12 @@ int generate_assignment(char *left, char *right)
 	    } else if (l->deref==3) {
 	      // For triple derefence, we will have setup the target pointer
 	      // via self-modifying code
-	      printf("!: sta ($ff),y\n");
+	      if (r->reg_x) printf("txa\n");
+	      if (r->reg_y) printf("tya\n");
+	      if (l->derefidx)
+		printf("!: sta $ffff\n");
+	      else
+		printf("!: sta ($ff),y\n");
 	    } else if (l->deref>3) {
 	      fprintf(stderr,"ERROR: At most only three levels of dereference may be used.\n");
 	      exit(-1);
