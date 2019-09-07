@@ -151,7 +151,7 @@ void parse_thing_common(char *left,struct thing *t)
 
   */
 
-  fprintf(stderr,"parse_thing_common: Parsing '%s'\n",left);
+  //  fprintf(stderr,"parse_thing_common: Parsing '%s'\n",left);
   
   // d/w/b for size
   switch(left[1]) {
@@ -292,7 +292,7 @@ struct thing *parse_thing(char *left)
 {
   struct thing *t=calloc(sizeof(struct thing),1);
 
-  fprintf(stderr,"parse_thing: Parsing '%s'\n",left);
+  //  fprintf(stderr,"parse_thing: Parsing '%s'\n",left);
   
   if(!strncmp(left,"_hi_",4)) {
     t->hi=1;
