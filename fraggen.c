@@ -723,13 +723,34 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  
 	  // Implement addition/subtraction of constants other than 1 and -1
 	  if (r->inc) {
-	    if (!byte) printf("clc\n");
-	    switch(byte) {
-	    case 0: printf("adc #<$%x\n",r->inc); break;
-	    case 1: printf("adc #>$%x\n",r->inc); break;
-	    case 2: printf("adc #<$%x>>16\n",r->inc); break;
-	    case 3: printf("adc #>$%x>>16\n",r->inc); break;
-	    }	 
+	    int add=1;
+	    if (r->inc<0) add=0;
+	    if (r->bytes==1&&r->inc&0x80) add=0;
+	    if (r->bytes==2&&r->inc&0x8000) add=0;
+            if (add) {
+	      if (!byte) printf("clc\n");
+	      switch(byte) {
+	      case 0: printf("adc #<$%x\n",r->inc); break;
+	      case 1: printf("adc #>$%x\n",r->inc); break;
+	      case 2: printf("adc #<$%x>>16\n",r->inc); break;
+	      case 3: printf("adc #>$%x>>16\n",r->inc); break;
+	      }
+	    } else {
+	      if (!byte) printf("sec\n");
+	      if (r->inc==-1) {
+		switch(byte) {
+		case 0: printf("sbc #1\n"); break;
+		default: printf("sbc #0\n",-r->inc); break;
+		}
+	      } else {
+		switch(byte) {
+		case 0: printf("sbc #<%d\n",-r->inc); break;
+		case 1: printf("sbc #>%d\n",-r->inc); break;
+		case 2: printf("sbc #<%d>>16\n",-r->inc); break;
+		case 3: printf("sbc #>%d>>16\n",-r->inc); break;
+		}
+	      }
+	    }
 	  }
 	  
 	  if (byte<l->bytes) {
