@@ -11,6 +11,14 @@
   <lvalue>=<rvalue>
 */
 
+// Comparison operations
+#define GE 1
+#define GT 2
+#define LE 3
+#define LT 4
+#define EQ 5
+#define NE 6
+
 #define CHOICE(N,M)   case N: snprintf(&lvalue_name_ret[ofs],1024-ofs,"%s",M"p"); ofs+=strlen(M); break
 #define RCHOICE(N,M)   case N: snprintf(&rvalue_name_ret[ofs],1024-ofs,"%s",M"p"); ofs+=strlen(M); break
 #define DEFCHOICE(N,WAYS) c##N=idx%WAYS; idx=idx/WAYS
@@ -467,7 +475,7 @@ void expand_op(struct thing *r)
   
 }
 
-int generate_assignment(char *left, char *right)
+int generate_assignment(char *left, char *right,int comparison_op,char *branch_target)
 {
   struct thing *l,*r;
 
@@ -525,6 +533,10 @@ int generate_assignment(char *left, char *right)
   if (l->deref>1||r->deref>1) {
     //    printf("deref=%d\n",l->deref);
     switch(l->deref) {
+    case 0:
+      // No deref, nothing to do
+      if (r->deref) printf("ldy #0\n");
+      break;
     case 1:
       printf("ldy #0 ; one\n");
       break;
@@ -549,7 +561,7 @@ int generate_assignment(char *left, char *right)
       } else {
 	// De-ref pointer without offset
 	// This means we can just use lda ($nn),y
-	if (!l->derefidx||!l->derefidx->reg_y)
+	if ((!l->derefidx||!l->derefidx->reg_y))
 	  printf("ldy #0\n");
 	if (l->early_deref) {
 	  if (r->reg_a) {
@@ -730,7 +742,25 @@ int generate_assignment(char *left, char *right)
 	      if (r->reg_a)
 		printf("tay\n");       
 	    } else if (l->deref==0) {
-	      printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");	
+	      if (!comparison_op) {
+		printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");
+	      } else {
+		if (byte>=(l->bytes-1)) {
+		  switch(byte) {
+		  case 0: printf("sbc #<{%s}\n",l->name); break;
+		  case 1: printf("sbc #>{%s}\n",l->name); break;
+		  case 2: printf("sbc #<{%s}>>16\n",l->name); break;
+		  case 3: printf("sbc #>{%s}>>16\n",l->name); break;
+		  }
+		} else {
+		  switch(byte) {
+		  case 0: printf("cmp #<{%s}\n",l->name); break;
+		  case 1: printf("cmp #>{%s}\n",l->name); break;
+		  case 2: printf("cmp #<{%s}>>16\n",l->name); break;
+		  case 3: printf("cmp #>{%s}>>16\n",l->name); break;
+		  }
+		}
+	      }
 	    } else if (l->deref==1) {
 	      if (r->reg_x) printf("stx {%s}",l->name);
 	      else if (r->reg_y) printf("sty {%s}",l->name);
@@ -984,15 +1014,8 @@ int generate_assignment(char *left, char *right)
 
 int generate_comparison(char *destination,char *comparison)
 { 
-  fprintf(stderr,"comparison handling not supported.\n");
-  printf("Comparison = '%s'\n",comparison);
+  //  printf("Comparison = '%s'\n",comparison);
 
-  #define GE 1
-  #define GT 2
-  #define LE 3
-  #define LT 4
-  #define EQ 5
-  #define NE 6
   int op;
   
   char *relation=NULL;
@@ -1014,10 +1037,18 @@ int generate_comparison(char *destination,char *comparison)
   left[relation-comparison]=0;  
   right=&strchr(&relation[1],'_')[1];
 
-  printf("left='%s', right='%s', op=%d\n",left,right,op);
-  
-  exit(-1);
-  return 0;
+  //  printf("left='%s', right='%s', op=%d\n",left,right,op);
+
+  generate_assignment(right,left,op,destination);
+  switch(op) {
+  case GE:
+    printf("bvc !+\n");
+    printf("eor #$80\n");
+    printf("!:\n");
+    printf("bpl {%s}\n",destination);
+    break;
+  }
+  return 0; 
 }
 
 int generate_fragment(char *name)
@@ -1038,7 +1069,7 @@ int generate_fragment(char *name)
       fprintf(stderr,"Could not parse assignment fragment '%s' (junk at end of name)\n",name);
       exit(-1);
     }
-    return generate_assignment(left,right);
+    return generate_assignment(left,right,0,NULL);
   } else {
     // Comparison + branch
     char *then=strstr(name,"_then_");
