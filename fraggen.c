@@ -314,6 +314,10 @@ struct thing *parse_thing(char *left)
     // Cast to pointer
     left+=strlen("_ptr_");
   }
+  while(!strncmp(left,"_word_",5)) {
+    // Cast to pointer
+    left+=strlen("_word_");
+  }
   while(!strncmp(left,"_deref_",7)) {
     t->deref++;
     left+=strlen("_deref_");
@@ -979,8 +983,39 @@ int generate_assignment(char *left, char *right)
 }
 
 int generate_comparison(char *destination,char *comparison)
-{
+{ 
   fprintf(stderr,"comparison handling not supported.\n");
+  printf("Comparison = '%s'\n",comparison);
+
+  #define GE 1
+  #define GT 2
+  #define LE 3
+  #define LT 4
+  #define EQ 5
+  #define NE 6
+  int op;
+  
+  char *relation=NULL;
+  char *right=NULL;
+  if (!relation) { relation=strstr(comparison,"_ge_"); if (relation) op=GE; }
+  if (!relation) { relation=strstr(comparison,"_gt_"); if (relation) op=GT; }
+  if (!relation) { relation=strstr(comparison,"_le_"); if (relation) op=LE; }
+  if (!relation) { relation=strstr(comparison,"_lt_"); if (relation) op=LT; }
+  if (!relation) { relation=strstr(comparison,"_eq_"); if (relation) op=EQ; }
+  if (!relation) { relation=strstr(comparison,"_neq_"); if (relation) op=NE; }
+
+  if (!relation) {
+    printf("ERROR: unknown comparison type\n");
+    return -1;
+  }
+
+  char left[1024];
+  strcpy(left,comparison);
+  left[relation-comparison]=0;  
+  right=&strchr(&relation[1],'_')[1];
+
+  printf("left='%s', right='%s', op=%d\n",left,right,op);
+  
   exit(-1);
   return 0;
 }
