@@ -310,6 +310,10 @@ struct thing *parse_thing(char *left)
     t->inc--;
     left+=strlen("_dec_");
   }
+  while(!strncmp(left,"_ptr_",5)) {
+    // Cast to pointer
+    left+=strlen("_ptr_");
+  }
   while(!strncmp(left,"_deref_",7)) {
     t->deref++;
     left+=strlen("_deref_");
@@ -643,9 +647,13 @@ int generate_assignment(char *left, char *right)
 	  // and we have sufficient dereferencing to make it needed
 	  // i.e., on all but the first round
 	  if (byte)
-	    if (l->deref>1||r->deref>1)
+	    if (l->deref>1||r->deref>1) {
+	      // Get $00 into A for upper bytes by copying
+	      // the zero value currently in Y
+	      if (r->reg_a&&l->bytes>1) printf("tya\n");
+
 	      printf("iny\n");
-	  
+	    }
 	  if (!byte) {
 	    if (shift_offset<0) printf("lda #0\n");
 	  }
@@ -809,7 +817,12 @@ int generate_assignment(char *left, char *right)
 	      printf("ERROR: Max supported derefence level = 2\n");
 	      break;
 	    }
-	    if (l->deref>1||r->deref>1) printf("iny\n");
+	    if (l->deref>1||r->deref>1) {
+	      // Get $00 into A for upper bytes by copying
+	      // the zero value currently in Y
+	      if (r->reg_a&&l->bytes>1) printf("tya\n");
+	      printf("iny\n");
+	    }
 	  }
 	  if (l->deref>1||r->deref>1) printf("ldy #0\n");
 	}
