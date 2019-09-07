@@ -151,7 +151,7 @@ void parse_thing_common(char *left,struct thing *t)
 
   */
 
-  //  fprintf(stderr,"Parsing '%s'\n",left);
+  fprintf(stderr,"parse_thing_common: Parsing '%s'\n",left);
   
   // d/w/b for size
   switch(left[1]) {
@@ -178,12 +178,15 @@ void parse_thing_common(char *left,struct thing *t)
   switch(left[3]) {
   case 'a':
     t->reg_a=1;
+    t->name=&left[3];
     break;
   case 'x':
     t->reg_x=1;
+    t->name=&left[3];
     break;
   case 'y':
     t->reg_y=1;
+    t->name=&left[3];
     break;
   case 'z':
     // There is an extra level of indirection for Z versus C.
@@ -191,84 +194,95 @@ void parse_thing_common(char *left,struct thing *t)
     t->deref++;
   case 'c':
     t->name=&left[3];
-    if (strchr(t->name,'_')) {
-      char *suffix=strchr(t->name,'_');
-      suffix[0]=0;
-      suffix++;
-      if (!strncmp(suffix,"ror_",4)) {
-	if (sscanf(&suffix[4],"%d",&t->shift)==1) {
-	  // Fixed numeric shift to the right
-	} else {
-	  t->shift=1; // RIGHT
-	  t->shift_thing=parse_thing(&suffix[4]);
-	}
-	suffix=NULL;
-      }
-      else if (!strncmp(suffix,"rol_",4)) {
-	if (sscanf(&suffix[4],"%d",&t->shift)==1) {
-	  // Fixed numeric shift to the left
-	  t->shift=-t->shift;    
-	} else {
-	  t->shift=-1; // LEFT
-	  t->shift_thing=parse_thing(&suffix[4]);
-	}
-	suffix=NULL;	
-      }
-      else if (!strncmp(suffix,"band_",5)) {
-	t->arg_op=OP_AND;
-	t->arg_thing=parse_thing(&suffix[5]);
-      }
-      else if (!strncmp(suffix,"bor_",4)) {
-	t->arg_op=OP_OR;
-	t->arg_thing=parse_thing(&suffix[4]);
-      }
-      else if (!strncmp(suffix,"bxor_",5)) {
-	t->arg_op=OP_XOR;
-	t->arg_thing=parse_thing(&suffix[5]);
-      }
-      else if (!strncmp(suffix,"plus_",6)) {
-	t->arg_op=OP_PLUS;
-	t->arg_thing=parse_thing(&suffix[6]);
-      }
-      else if (!strncmp(suffix,"minus_",6)) {
-	t->arg_op=OP_MINUS;
-	t->arg_thing=parse_thing(&suffix[6]);
-      }
-      if (suffix&&suffix[0]) {
-	if (!strncmp(suffix,"derefidx_",strlen("derefidx_"))) {
-	  suffix+=strlen("derefidx_");
-	  // Now parse the derefence index term.
-	  // Skip any opening brackets
-	  if (suffix[0]=='(') {
-	    suffix++;
-	    int len=strlen(suffix);
-	    if (suffix[len-1]!=')') {
-	      fprintf(stderr,"Unbalanced brackets\n");
-	      exit(-1);
-	    }
-	    suffix[len-1]=0;
-	  }
-	  //	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
-	  t->derefidx=parse_thing(suffix);
-	  t->deref++;
-	  suffix=NULL;
-	}
-      }
-
-      if (suffix) {
-	// XXX - derference indexes will have to be supported here in time
-	fprintf(stderr,"Can't parse destination description suffix '_%s'.\n",suffix);
-	exit(-1);
-      }
-    }
     break;
   default:
     fprintf(stderr,"Can't parse target description '%s'\n",&left[3]);
     exit(-1);
   }
 
-  left+=4;
+  if (!t->name) {
+    printf("t->name=NULL from left='%s'\n",left);
+  }
   
+  if (strchr(t->name,'_')) {
+    char *suffix=strchr(t->name,'_');
+    suffix[0]=0;
+    suffix++;
+    if (!strncmp(suffix,"ror_",4)) {
+      if (sscanf(&suffix[4],"%d",&t->shift)==1) {
+	// Fixed numeric shift to the right
+      } else {
+	t->shift=1; // RIGHT
+	t->shift_thing=parse_thing(&suffix[4]);
+      }
+      suffix=NULL;
+    }
+    else if (!strncmp(suffix,"rol_",4)) {
+      if (sscanf(&suffix[4],"%d",&t->shift)==1) {
+	// Fixed numeric shift to the left
+	t->shift=-t->shift;    
+      } else {
+	t->shift=-1; // LEFT
+	t->shift_thing=parse_thing(&suffix[4]);
+      }
+      suffix=NULL;	
+    }
+    else if (!strncmp(suffix,"band_",5)) {
+      t->arg_op=OP_AND;
+      t->arg_thing=parse_thing(&suffix[5]);
+      suffix=NULL;	
+    }
+    else if (!strncmp(suffix,"bor_",4)) {
+      t->arg_op=OP_OR;
+      t->arg_thing=parse_thing(&suffix[4]);
+      suffix=NULL;	
+    }
+    else if (!strncmp(suffix,"bxor_",5)) {
+      t->arg_op=OP_XOR;
+      t->arg_thing=parse_thing(&suffix[5]);
+      suffix=NULL;	
+    }
+    else if (!strncmp(suffix,"plus_",6)) {
+      t->arg_op=OP_PLUS;
+      t->arg_thing=parse_thing(&suffix[6]);
+      suffix=NULL;	
+    }
+    else if (!strncmp(suffix,"minus_",6)) {
+      t->arg_op=OP_MINUS;
+      t->arg_thing=parse_thing(&suffix[6]);
+      suffix=NULL;	
+    }
+    else {
+      printf("unhandled suffix '%s'\n",suffix);
+    }
+    if (suffix&&suffix[0]) {
+      if (!strncmp(suffix,"derefidx_",strlen("derefidx_"))) {
+	suffix+=strlen("derefidx_");
+	// Now parse the derefence index term.
+	// Skip any opening brackets
+	if (suffix[0]=='(') {
+	  suffix++;
+	  int len=strlen(suffix);
+	  if (suffix[len-1]!=')') {
+	    fprintf(stderr,"Unbalanced brackets\n");
+	    exit(-1);
+	  }
+	  suffix[len-1]=0;
+	}
+	//	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
+	t->derefidx=parse_thing(suffix);
+	t->deref++;
+	suffix=NULL;
+      }
+    }
+    
+    if (suffix) {
+      // XXX - derference indexes will have to be supported here in time
+      fprintf(stderr,"Can't parse destination description suffix '_%s'.\n",suffix);
+      exit(-1);
+    }
+  }
+
   return;
 }
     
@@ -278,7 +292,7 @@ struct thing *parse_thing(char *left)
 {
   struct thing *t=calloc(sizeof(struct thing),1);
 
-  //  fprintf(stderr,"Parsing '%s'\n",left);
+  fprintf(stderr,"parse_thing: Parsing '%s'\n",left);
   
   if(!strncmp(left,"_hi_",4)) {
     t->hi=1;
@@ -376,6 +390,51 @@ void describe_thing(int depth,struct thing *t)
     describe_thing(depth+6,t->shift_thing);
   }
   printf("\n");
+}
+
+void expand_op(struct thing *r)
+{
+  if (r->arg_thing) {
+    char name[1024]="{ERROR: Could not resolve}";
+    if (r->arg_thing->name)
+      snprintf(name,1024,"{%s}\n",r->arg_thing->name);
+    if (r->arg_thing->reg_a) {
+      printf("ERROR: Reading arg from A register. Does this ever make sense?\n");
+    }
+    if (r->arg_thing->reg_x) {
+      //      printf("ERROR: Reading arg from X register.\n");
+      printf("stx $f0\n");
+      snprintf(name,1024,"$f0");
+    }
+    if (r->arg_thing->reg_y) {
+      //      printf("ERROR: Reading arg from Y register.\n");
+      printf("sty $f0\n");
+      snprintf(name,1024,"$f0");
+    }
+    if (r->arg_thing->bytes>1) {
+      printf("ERROR: We don't (yet) support >1 bytes here.\n");
+    }
+    switch(r->arg_op) {
+    case OP_AND:
+      printf("and %s\n",name);
+      break;
+    case OP_OR:
+      printf("or %s\n",name);
+      break;
+    case OP_XOR:
+      printf("eor %s\n",name);
+      break;
+    case OP_MINUS:
+      printf("sec\n");
+      printf("sbc %s\n",name);
+      break;
+    case OP_PLUS:
+      printf("clc\n");
+      printf("adc %s\n",name);
+      break;
+    }
+  }
+  
 }
 
 int generate_assignment(char *left, char *right)
@@ -546,18 +605,16 @@ int generate_assignment(char *left, char *right)
 	      if (r->reg_x) printf("stx {%s}",l->name);
 	      else if (r->reg_y) printf("sty {%s}",l->name);
 	      else {
-		switch(r->arg_op) {
-		  // XXX Arg operations go here
-		}
+		expand_op(r);
 		printf("sta {%s}",l->name);
 	      }
 	      
 	      if (byte) printf("+%d",byte);
 	      printf("\n");
 	    } else if (l->deref==2) {
-	      switch(r->arg_op) {
-		// XXX Arg operations go here
-	      }
+	      // XXX Arg operations go here
+	      expand_op(r);
+
 	      printf("sta ({%s}),y\n",l->name);
 	    } else if (l->deref==3) {
 	      // For triple derefence, we will have setup the target pointer
