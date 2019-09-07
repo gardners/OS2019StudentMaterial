@@ -624,10 +624,29 @@ int generate_assignment(char *left, char *right)
 	    }
 	    if (l->deref>1||r->deref>1) printf("iny\n");
 	  }
+	  if (l->deref>1||r->deref>1) printf("ldy #0\n");
 	}
 	
 	// Should thiss be #{c1} or {c1}?
-	printf("ldx #{c1}\n");
+	if (r->shift_thing->name[0]=='c')
+	  printf("ldx #{%s}\n",r->shift_thing->name);
+	else if (r->shift_thing->name[0]=='z') {
+	  switch(r->shift_thing->deref) {
+	  case 0:
+	    printf("ldx #{%s}\n",r->shift_thing->name);
+	    break;
+	  case 1:
+	    printf("ldx {%s}\n",r->shift_thing->name);
+	    break;
+	  case 2:
+	    printf("lda ({%s}),y\ntax\n",r->shift_thing->name);
+	    break;
+	  default:
+	    printf("ERROR: shift value must not be dereferenced > 2 levels.\n");
+	  }
+	} else {
+	  printf("ERROR: shift value must be a constant or variable. I saw '%s'\n",r->shift_thing->name);
+	}
 	printf("!:\n");
 	if (r->shift<0) {
 	  switch (l->deref) {
