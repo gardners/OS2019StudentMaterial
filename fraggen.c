@@ -503,7 +503,8 @@ int generate_assignment(char *left, char *right)
 
   //  printf("%d %d %d %d\n",l->pointer,l->deref,r->pointer,r->deref);
   if ((r->pointer>r->deref)||
-      (l->pointer>l->deref)) {
+      (l->pointer>l->deref)||
+      (!strncmp("_deref_pp",left,9))) {
     // Pointers
     //    printf("Inferring pointers.\n");
     r->bytes=2;
