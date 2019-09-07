@@ -159,6 +159,7 @@ void parse_thing_common(char *left,struct thing *t)
   case 'd': t->bytes=4; break;
   case 'w': t->bytes=2; break;
   case 'p': t->bytes=2; break;
+  case 's': t->bytes=2; break;
   case 'b': t->bytes=1; break;
   default:
     fprintf(stderr,"Can't parse size '%c'\n",left[1]);
