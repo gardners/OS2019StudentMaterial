@@ -430,12 +430,12 @@ void describe_thing(int depth,struct thing *t)
   printf("\n");
 }
 
-void expand_op(struct thing *r)
+void expand_op(int byte,struct thing *r)
 {
   if (r->arg_thing) {
     char name[1024]="{ERROR: Could not resolve}";
     if (r->arg_thing->name)
-      snprintf(name,1024,"{%s}\n",r->arg_thing->name);
+      snprintf(name,1024,"{%s}",r->arg_thing->name);
     if (r->arg_thing->reg_a) {
       printf("ERROR: Reading arg from A register. Does this ever make sense?\n");
     }
@@ -449,9 +449,9 @@ void expand_op(struct thing *r)
       printf("sty $f0\n");
       snprintf(name,1024,"$f0");
     }
-    if (r->arg_thing->bytes>1) {
-      printf("ERROR: We don't (yet) support >1 bytes here.\n");
-    }
+    //    if (r->arg_thing->bytes>1) {
+    //  printf("ERROR: We don't (yet) support >1 bytes here.\n");
+    //}
     switch(r->arg_op) {
     case OP_AND:
       printf("and %s\n",name);
@@ -463,8 +463,22 @@ void expand_op(struct thing *r)
       printf("eor %s\n",name);
       break;
     case OP_MINUS:
-      printf("sec\n");
-      printf("sbc %s\n",name);
+      if (!byte) printf("sec\n");
+      if (!r->arg_thing->deref) {
+	switch(byte) {
+	case 0: printf("sbc #<%s\n",name); break;
+	case 1: printf("sbc #>%s\n",name); break;
+	case 2: printf("sbc #<%s>>16\n",name); break;
+	case 3: printf("sbc #>%s>>16\n",name); break;
+	}
+      } else {
+	switch(byte) {
+	case 0: printf("sbc %s\n",name); break;
+	case 1: printf("sbc %s+1\n",name); break;
+	case 2: printf("sbc %s+2\n",name); break;
+	case 3: printf("sbc %s+3\n",name); break;
+	}
+      }      
       break;
     case OP_PLUS:
       printf("clc\n");
@@ -786,15 +800,14 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if (r->reg_x) printf("stx {%s}",l->name);
 	      else if (r->reg_y) printf("sty {%s}",l->name);
 	      else {
-		expand_op(r);
+		expand_op(byte,r);
 		printf("sta {%s}",l->name);
 	      }
 	      
 	      if (byte) printf("+%d",byte);
 	      printf("\n");
 	    } else if (l->deref==2) {
-	      // XXX Arg operations go here
-	      expand_op(r);
+	      expand_op(byte,r);
 
 	      if (!l->derefidx||l->early_deref)  {
 		if (l->early_deref) 
