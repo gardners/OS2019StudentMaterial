@@ -672,6 +672,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   
   //  describe_thing(0,l);
 
+  int a_zero=0;
   int inner_deref_done=0;
   int simple_pointer_cast=0;
   int valid_bytes=1;
@@ -845,8 +846,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	else
 	  printf("ldy #{%s}\n",l->derefidx->name);
       }
-      else
+      else {
 	printf("tya\n");
+      }
       printf("sty !+ +1\n");
       self_modify=1;
     } else {
@@ -980,6 +982,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      // the zero value currently in Y
 	      if (r->reg_a&&l->bytes>1) {
 		printf("tya\n");
+		a_zero=1;
 	      }
 
 	      if ((!l->derefidx||!l->derefidx->reg_y)) {
@@ -996,7 +999,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  if (!byte) {
 	    if (shift_offset<0) {
 	      // No need for lda #0 when tya provides the value
-	      if (!(r->reg_a&&l->bytes>1)) 
+	      if ((!(r->reg_a&&l->bytes>1))&&(!a_zero))
 		printf("lda #0\n");
 	    }
 	  }
@@ -1004,7 +1007,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  if (byte<r->bytes) {
 	    if (r->reg_a) {
 	      // Nothing to do
-	      if (byte) printf("lda #0\n");
+	      if (byte&&(!r->pointer)&&(!a_zero)) printf("lda #0\n");
 	    } else if (r->reg_x) {
 	      if (l->reg_a)
 		printf("txa\n");
@@ -1054,7 +1057,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  } else {
 	    if (byte==r->bytes) {
 	      // No need for lda #0 when tya provides the value
-	      if (!(r->reg_a&&l->bytes>1)) 
+	      if ((!(r->reg_a&&l->bytes>1))&&(!a_zero))
 		printf("lda #0\n");
 	    }
 	  }
@@ -1380,7 +1383,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    if (l->deref>1||r->deref>1) {
 	      // Get $00 into A for upper bytes by copying
 	      // the zero value currently in Y
-	      if (r->reg_a&&l->bytes>1) printf("tya\n");
+	      if (r->reg_a&&l->bytes>1) { printf("tya\n"); a_zero=1; }
 	      printf("iny\n");
 	    }
 	  }
