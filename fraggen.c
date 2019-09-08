@@ -1079,15 +1079,19 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			    printf("ERROR: Unsupported nested derefence\n");
 			  }
 			} else {
-			  printf("ERROR: Unsupported nested derefence form\n");
+			  printf("ERROR: Unsupported nested derefence form (line %d)\n",__LINE__);
 			}
 		      } else {
 			// We have a derefidx, but that itself does not have a derefidx
 			if (l->derefidx->reg_a) {
 			  printf("tax\n");
 			  printf("sta {%s},x",l->name);
+			} else if (l->derefidx->reg_x) {
+			  printf("sta {%s},x",l->name);
+			} else if (l->derefidx->reg_y) {
+			  printf("sta {%s},y",l->name);
 			} else {
-			  printf("ERROR: Unsupported nested derefence form\n");
+			  printf("ERROR: Unsupported nested derefence form (line %d)\n",__LINE__);
 			}
 		      }
 		    }
