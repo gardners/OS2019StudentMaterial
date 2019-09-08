@@ -1007,7 +1007,8 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  if (byte<r->bytes) {
 	    if (r->reg_a) {
 	      // Nothing to do
-	      if (byte&&(!r->pointer)&&(!a_zero)) printf("lda #0\n");
+	      if (byte&&(!a_zero))
+		printf("lda #0\n");
 	    } else if (r->reg_x) {
 	      if (l->reg_a)
 		printf("txa\n");
