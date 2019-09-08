@@ -580,14 +580,17 @@ void expand_arith_interim_step(int comparison_op,int byte,struct thing *l,char *
     }
     break;
   case GT: 
-    if (byte||(!reverse_order))
-      printf("bcc !+\nbne {%s}\n",branch_target);
+    if (byte) {
+      printf("bcc {%s}\nbne !+\n",branch_target);
+    }
     break;
   case LE:    
-    if (byte||(!reverse_order))
-      printf("bcc {%s}\nbne !+\n",branch_target);
-    else
-      printf("bcc {%s}\n!:\n",branch_target);
+    if (byte) {
+      //   if (!reverse_order)
+	printf("bne !+\n");
+      //      else
+      //	printf("bcc {%s}\nbne !+\n",branch_target);	
+    }
     break;
   }		
 }
@@ -671,7 +674,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       if (r->deref) printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
       break;
     case 1:
-      printf("ldy #0 ; %d\n",__LINE__);
+      printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
       break;
     case 2:
       if (l->derefidx&&!l->early_deref) {
@@ -979,10 +982,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		}
 		
 		switch(byte) {
-		case 0: printf("%s #<{%s}\n",opcode,l->name); break;
-		case 1: printf("%s #>{%s}\n",opcode,l->name); break;
-		case 2: printf("%s #<{%s}>>16\n",opcode,l->name); break;
-		case 3: printf("%s #>{%s}>>16\n",opcode,l->name); break;
+		case 0: printf("%s {%s}\n",opcode,l->name); break;
+		case 1: printf("%s {%s}+1\n",opcode,l->name); break;
+		case 2: printf("%s {%s}+2\n",opcode,l->name); break;
+		case 3: printf("%s {%s}+3\n",opcode,l->name); break;
 		}
 		expand_arith_interim_step(comparison_op,byte,l,branch_target, reverse_order);
 		
@@ -1291,15 +1294,13 @@ int generate_comparison(char *destination,char *comparison)
 
   int is_signed;
 
-  // Re-order comparison to reduce number of cases we have to deal with
-  switch(op) {
-  case LE: case LT: case EQ: case NE: case GE:
+  if (op!=GT) {
     is_signed=generate_assignment(right,left,op,destination);
-    break;
-  case GT:
-    is_signed=generate_assignment(left,right,LE,destination);
-    break;
+  } else {
+    // GT we implement more or less as LE
+    is_signed=generate_assignment(left,right,op,destination);
   }
+  
 
   switch(op) {
   case GE:
@@ -1313,8 +1314,19 @@ int generate_comparison(char *destination,char *comparison)
       printf("!:\n");      
     }
     break;
+  case LE:
+    if (is_signed) {
+    } else {
+      printf("beq {%s}\n",destination);
+      printf("!:\n");      
+      printf("bcc {%s}\n",destination);
+    }
+    break;
   case EQ:
     printf("beq {%s}\n!:\n",destination);
+    break;
+  case GT:
+    printf("bcc {%s}\n!:\n",destination);
     break;
   }
   return 0; 
