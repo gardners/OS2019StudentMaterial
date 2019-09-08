@@ -664,6 +664,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   
   //  describe_thing(0,l);
 
+  int simple_pointer_cast=0;
   int valid_bytes=1;
   int skip_dey=1;
   int byte=0;
@@ -676,6 +677,23 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       break;
     }
   }
+
+  if (l&&r&&l->name&&r->name)
+    if (!strcmp(l->name,r->name)) {
+      if (l->deref==r->deref)
+	if (!l->arg_thing)
+	  if (!r->arg_thing)
+	    if (!l->derefidx)
+	      if (!r->derefidx)
+		if (!l->inc)
+		  if (!r->inc)
+		    if (!l->shift_thing)		  
+		      if (!r->shift_thing) {
+			printf("// No operation needed\n");
+			simple_pointer_cast=1;
+		      }
+      
+    }
 
   if (l->bytes>valid_bytes) valid_bytes=l->bytes;
   if (r->bytes>valid_bytes) valid_bytes=r->bytes;  
@@ -866,13 +884,15 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      }
 	    } else if (r->deref==1) {
 	      if (shift_offset+byte>=0) {
-		printf("lda {%s}",r->name);
-		if (byte+shift_offset) printf("+%d",byte+shift_offset);
-		if (r->derefidx&&r->derefidx->reg_x) printf(",x");
-		else if (r->derefidx&&r->derefidx->reg_x) printf(",y");
-		else if (r->derefidx)
-		  printf("[UNIMPLMENENTED DEREF]\n");
-		printf("\n");
+		if (!simple_pointer_cast) {
+		  printf("lda {%s}",r->name);
+		  if (byte+shift_offset) printf("+%d",byte+shift_offset);
+		  if (r->derefidx&&r->derefidx->reg_x) printf(",x");
+		  else if (r->derefidx&&r->derefidx->reg_x) printf(",y");
+		  else if (r->derefidx)
+		    printf("[UNIMPLMENENTED DEREF]\n");
+		  printf("\n");
+		}
 	      }
 	    } else if (r->deref==2) {
 	      if (shift_offset+byte>=0) {
@@ -980,11 +1000,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		else if (r->reg_y) printf("sty {%s}",l->name);
 		else {
 		  expand_op(byte,r);
-		  printf("sta {%s}",l->name);
+		  if (!simple_pointer_cast) {
+		    printf("sta {%s}",l->name);
+		    if (byte) printf("+%d",byte);
+		    printf("\n");
+		  }
 		}
-		
-		if (byte) printf("+%d",byte);
-		printf("\n");
 	      } else {
 		char *opcode="cmp";
 
