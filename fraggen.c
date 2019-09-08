@@ -794,8 +794,28 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 
   if (r->inc==1&&!strcmp(r->name,l->name)
       &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
+    
     // Short cut for INC
-    printf("inc {%s}\n",r->name);
+    switch(l->deref) {
+    case 1:
+      if (!l->derefidx)
+	printf("inc {%s}\n",r->name);
+      else {
+	if (l->derefidx) {
+	  if (l->derefidx->derefidx) {
+	    printf("lda ({%s}),y\ntay\n",l->derefidx->derefidx->name);	    
+	  } else {
+	    printf("ldy #0\n");
+	  }
+	  printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+	}
+	printf("inc {%s},x\n",r->name);
+      }
+      break;
+    default:
+      printf("ERROR: unsupported indirection for inferred INC instruction\n");
+      break;
+    }
   } else if (r->inc==1&&!strcmp(r->name,l->name)
       &&r->deref==1&&l->deref==1&&r->bytes==2&&l->bytes) {
     // Short cut for INC
@@ -806,7 +826,19 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   } else if (r->inc==-1&&!strcmp(r->name,l->name)
       &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
     // Short cut for DEC
-    printf("dec {%s}\n",r->name);
+    if (!l->derefidx)
+      printf("dec {%s}\n",r->name);
+    else {
+      if (l->derefidx) {
+	if (l->derefidx->derefidx) {
+	  printf("lda ({%s}),y\ntay\n",l->derefidx->derefidx->name);	    
+	} else {
+	  printf("ldy #0\n");
+	}
+	printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+      }
+      printf("dec {%s},x\n",r->name);
+    }
   } else if (r->inc==-1&&!strcmp(r->name,l->name)
       &&r->deref==1&&l->deref==1&&r->bytes==2&&l->bytes) {
     // Short cut for DEC
