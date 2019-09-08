@@ -560,6 +560,38 @@ int deref2_uses_y(struct thing *r)
  
 }
 
+void expand_arith_interim_step(int comparison_op,int byte,struct thing *l,char *branch_target, int reverse_order)
+{
+  if (0) printf("op=%d,byte=%d, rev=%d, l->bytes=%d, l->sign=%d\n",
+		comparison_op,byte,reverse_order,l->bytes,l->sign);  
+
+  switch(comparison_op) {
+  case EQ:
+    
+    if (byte<(l->bytes-1)) printf("bne !+\n");
+    break;
+    
+  case NE: printf("bne {%s}\n",branch_target); break;
+    
+  case GE:
+    if (!l->sign) {
+      if (byte||(!reverse_order))
+	printf("bcc !+\nbne {%s}\n",branch_target);
+    }
+    break;
+  case GT: 
+    if (byte||(!reverse_order))
+      printf("bcc !+\nbne {%s}\n",branch_target);
+    break;
+  case LE:    
+    if (byte||(!reverse_order))
+      printf("bcc {%s}\nbne !+\n",branch_target);
+    else
+      printf("bcc {%s}\n!:\n",branch_target);
+    break;
+  }		
+}
+  
 int generate_assignment(char *left, char *right,int comparison_op,char *branch_target)
 {
   struct thing *l,*r;
@@ -639,7 +671,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       if (r->deref) printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
       break;
     case 1:
-      printf("ldy #0 ; one\n");
+      printf("ldy #0 ; %d\n",__LINE__);
       break;
     case 2:
       if (l->derefidx&&!l->early_deref) {
@@ -666,7 +698,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	// and with different offsets
 	if ((!l->derefidx||!l->derefidx->reg_y)) {
 	  if (deref2_uses_y(r)) printf("sty $ff\n");
-	  else printf("ldy #0\n");
+	  else {
+	    printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+	  }
 	}
 	if (l->early_deref) {
 	  if (r->reg_a) {
@@ -868,7 +902,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      }
 	    }
 	  }
-	  
+
 	  if (byte<l->bytes) {
 	    if (l->reg_a) {
 	      // Nothing to do
@@ -909,49 +943,95 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		case 2: printf("%s #<{%s}>>16\n",opcode,l->name); break;
 		case 3: printf("%s #>{%s}>>16\n",opcode,l->name); break;
 		}
-		switch(comparison_op) {
-		case EQ:
-		  
-		  if (byte<(l->bytes-1)) printf("bne !+\n");
-		  break;
-		  
-		case NE: printf("bne {%s}\n",branch_target); break;
-
-		case GE:
-		  if (!l->sign) {
-		    if (byte||(!reverse_order))
-		      printf("bcc !+\nbne {%s}\n",branch_target);
-		  }
-		  break;
-		}
+		expand_arith_interim_step(comparison_op,byte,l,branch_target, reverse_order);
 	      }
 	    } else if (l->deref==1) {
-	      if (r->reg_x) printf("stx {%s}",l->name);
-	      else if (r->reg_y) printf("sty {%s}",l->name);
-	      else {
-		expand_op(byte,r);
-		printf("sta {%s}",l->name);
-	      }
-	      
-	      if (byte) printf("+%d",byte);
-	      printf("\n");
-	    } else if (l->deref==2) {
+	      if (!comparison_op) {
+		if (r->reg_x) printf("stx {%s}",l->name);
+		else if (r->reg_y) printf("sty {%s}",l->name);
+		else {
+		  expand_op(byte,r);
+		  printf("sta {%s}",l->name);
+		}
+		
+		if (byte) printf("+%d",byte);
+		printf("\n");
+	      } else {
+		char *opcode="cmp";
 
+		if (l->sign) {
+
+		  // For signed comparisons we have to do the complete sequence and finish
+		  // with SBC so that V flag gets set to indicate overflow or not.
+		  if (byte>=(l->bytes-1)) {
+		    switch(comparison_op) {
+		    case GE: case LT: case LE: case GT: opcode="sbc";
+		      break;
+		    }
+		  }
+		} else {
+		  // For unsigned comparisons we can either (1) use reversed byte order to
+		  // short-circuit the comparison to save some cycles when the higher-order
+		  // bytes reveal the result early, or (2) do the comparison in normal order
+		  // and check if the result is negative, zero or positive.
+		  // Jesper uses (1) because it is faster in some cases.
+		  // This makes our life harder, because we have to enable reverse order
+		}
+		
+		switch(byte) {
+		case 0: printf("%s #<{%s}\n",opcode,l->name); break;
+		case 1: printf("%s #>{%s}\n",opcode,l->name); break;
+		case 2: printf("%s #<{%s}>>16\n",opcode,l->name); break;
+		case 3: printf("%s #>{%s}>>16\n",opcode,l->name); break;
+		}
+		expand_arith_interim_step(comparison_op,byte,l,branch_target, reverse_order);
+		
+	      }
+	    } else if (l->deref==2) {
 	      // Reset Y if required
 	      if ((!l->derefidx||!l->derefidx->reg_y)) {
 		if (deref2_uses_y(r)) printf("ldy #%d\n",byte);
 	      }
 
 	      expand_op(byte,r);
-
-	      if (!l->derefidx||l->early_deref)  {
-		if (l->early_deref) 
-		  printf("sta ($fe),y\n");
+	      
+	      if (!comparison_op) {
+		
+		if (!l->derefidx||l->early_deref)  {
+		  if (l->early_deref) 
+		    printf("sta ($fe),y\n");
+		  else
+		    printf("sta ({%s}),y\n",l->name);
+		}
 		else
-		  printf("sta ({%s}),y\n",l->name);
+		  printf("!: sta $ffff\n");
+	      } else {
+		char *opcode="cmp";
+
+		if (l->sign) {
+
+		  // For signed comparisons we have to do the complete sequence and finish
+		  // with SBC so that V flag gets set to indicate overflow or not.
+		  if (byte>=(l->bytes-1)) {
+		    switch(comparison_op) {
+		    case GE: case LT: case LE: case GT: opcode="sbc";
+		      break;
+		    }
+		  }
+		} else {
+		  // For unsigned comparisons we can either (1) use reversed byte order to
+		  // short-circuit the comparison to save some cycles when the higher-order
+		  // bytes reveal the result early, or (2) do the comparison in normal order
+		  // and check if the result is negative, zero or positive.
+		  // Jesper uses (1) because it is faster in some cases.
+		  // This makes our life harder, because we have to enable reverse order
+		}
+		
+		printf("%s ({%s}),y\n",opcode,l->name);
+
+		expand_arith_interim_step(comparison_op,byte,l,branch_target, reverse_order);
 	      }
-	      else
-		printf("!: sta $ffff\n");
+		       
 	    } else if (l->deref==3) {
 	      // For triple derefence, we will have setup the target pointer
 	      // via self-modifying code
@@ -1209,7 +1289,18 @@ int generate_comparison(char *destination,char *comparison)
 
   //  printf("left='%s', right='%s', op=%d\n",left,right,op);
 
-  int is_signed=generate_assignment(right,left,op,destination);
+  int is_signed;
+
+  // Re-order comparison to reduce number of cases we have to deal with
+  switch(op) {
+  case LE: case LT: case EQ: case NE: case GE:
+    is_signed=generate_assignment(right,left,op,destination);
+    break;
+  case GT:
+    is_signed=generate_assignment(left,right,LE,destination);
+    break;
+  }
+
   switch(op) {
   case GE:
     if (is_signed) {
