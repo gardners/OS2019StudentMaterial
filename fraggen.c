@@ -477,6 +477,9 @@ void expand_op(int byte,struct thing *r)
 	  snprintf(name,1024,"%s",r->arg_thing->name);
 	  if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
 	}
+      if (r->arg_thing->name[0]=='c')
+	if (r->arg_thing->bytes==1)
+	  literal_byte=1;
     }
     if (r->arg_thing->reg_a) {
       printf("ERROR: Reading arg from A register. Does this ever make sense?\n");
