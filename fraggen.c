@@ -772,9 +772,8 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     l->bytes=2;
   }
   if (left[0]=='p'&&(r->bytes==2)) l->bytes=2;
+  if (left[0]=='p'&&left[1]=='p'&&right[0]=='p') { l->bytes=2; r->bytes=2; }
   
-  //  describe_thing(0,l);
-
   int y_incremented=0;
   int shortcut_taken=0;
   int a_zero=0;
