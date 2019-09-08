@@ -608,6 +608,7 @@ void expand_arith_interim_step(int comparison_op,int byte,struct thing *l,char *
 int generate_assignment(char *left, char *right,int comparison_op,char *branch_target)
 {
   struct thing *l,*r;
+  int self_modify=0;
 
   l=parse_thing(left);
   r=parse_thing(right);
@@ -729,6 +730,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  printf("stx !+ +1\n");
 	  printf("ldx {%s}+1,y\n",l->name);
 	  printf("stx !+ +2\n");
+	  self_modify=1;
 	  
 	} else {
 	  
@@ -768,14 +770,17 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	printf("iny\n");
 	printf("lda ({%s}),y\n",l->name);
 	printf("sta !+ +2\n");
+	self_modify=1;
 	if (r->reg_a) printf("pla\n");
       } else {
 	if (r->reg_a) {	
 	  printf("ldy {%s}\n",l->name);
 	  printf("sty !+ +1\n");
+	  self_modify=1;
 	} else {
 	  printf("lda {%s}\n",l->name);
 	  printf("sta !+ +1\n");
+	  self_modify=1;
 	}
 	printf("ldy #0\n");
       }
@@ -789,9 +794,11 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     if (r->reg_a) {
       printf("ldy {%s}\n",l->name);
       printf("sty !+ +1\n");
+      self_modify=1;
     } else {
       printf("lda {%s}\n",l->name);
       printf("sta !+ +1\n");
+      self_modify=1;
     }
   }
 
@@ -872,6 +879,19 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   }
   else {
 
+    if (r->derefidx) {
+      if (r->derefidx->deref) {
+	if (r->derefidx->reg_y) {
+	  // Nothing to do
+	} else if (r->derefidx->reg_x) {
+	  printf("txa\n");
+	  printf("tay\n");
+	} else {
+	  printf("ldy #0\nlda ({%s}),y\ntay\n",r->derefidx->name);
+	}
+      }
+    }
+    
     // Normalise shifts down to a single bytes worth
     int shift_offset=r->shift/8;   
     r->shift-=shift_offset*8;
@@ -1152,8 +1172,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		  else
 		    printf("sta ({%s}),y\n",l->name);
 		}
-		else
+		else if (self_modify) 
 		  printf("!: sta $ffff\n");
+		else 
+		  printf("sta ({%s}),y\n",l->name);
 	      } else {
 		char *opcode="cmp";
 
