@@ -1067,6 +1067,14 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			} else {
 			  printf("ERROR: Unsupported nested derefence form\n");
 			}
+		      } else {
+			// We have a derefidx, but that itself does not have a derefidx
+			if (l->derefidx->reg_a) {
+			  printf("tax\n");
+			  printf("sta {%s},x",l->name);
+			} else {
+			  printf("ERROR: Unsupported nested derefence form\n");
+			}
 		      }
 		    }
 		    if (byte) printf("+%d",byte);
