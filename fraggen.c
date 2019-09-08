@@ -926,9 +926,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		  printf("lda {%s}",r->name);
 		  if (byte+shift_offset) printf("+%d",byte+shift_offset);
 		  if (r->derefidx&&r->derefidx->reg_x) printf(",x");
-		  else if (r->derefidx&&r->derefidx->reg_x) printf(",y");
-		  else if (r->derefidx)
+		  else if (r->derefidx&&r->derefidx->reg_y) printf(",y");
+		  else if (r->derefidx) {
 		    printf("[UNIMPLMENENTED DEREF]\n");
+		  }
 		  printf("\n");
 		}
 	      }
