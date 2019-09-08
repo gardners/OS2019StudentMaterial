@@ -1399,7 +1399,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			    printf("sta {%s},x\n",l->name);
 			  override=1;
 			} else if (l->derefidx->reg_y) {
-			  if (byte)
+			  if (byte&&(!r->derefidx->reg_y))
 			    printf("sta {%s}+%d,y\n",l->name,byte);
 			  else
 			    printf("sta {%s},y\n",l->name);
