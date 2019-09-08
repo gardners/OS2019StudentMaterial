@@ -656,6 +656,11 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     r->bytes=2;
     l->bytes=2;
   }
+  // Yet another pointer inference kludge
+  if (left[0]=='p'&&right[0]=='p') {
+    r->bytes=2;
+    l->bytes=2;
+  }
   
   //  describe_thing(0,l);
 
