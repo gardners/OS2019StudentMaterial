@@ -651,9 +651,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   //  printf("%d %d %d %d\n",l->pointer,l->deref,r->pointer,r->deref);
   if ((r->pointer>r->deref)||
       (l->pointer>l->deref)||
-      (!strncmp("_deref_pp",left,9))) {
+      (!strncmp("_deref_pp",left,9))||
+      (!strncmp("_deref_pp",right,9))) {
     // Pointers
-    //    printf("Inferring pointers %d.\n",__LINE__);
+    // printf("Inferring pointers %d.\n",__LINE__);
     r->bytes=2;
     l->bytes=2;
   }
@@ -1092,7 +1093,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      }
 	    }
 	  }
-
+	  
 	  if (byte<l->bytes) {
 	    if (l->reg_a) {
 	      // Nothing to do
@@ -1103,6 +1104,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if (r->reg_a)
 		printf("tay\n");       
 	    } else if (l->deref==0) {
+
 	      if (!comparison_op) {
 		printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");
 	      } else {
@@ -1143,10 +1145,35 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		if (r->reg_x) printf("stx {%s}",l->name);
 		else if (r->reg_y) printf("sty {%s}",l->name);
 		else {
+		  int override=0;
 		  expand_op(byte,r);
 		  if (!simple_pointer_cast) {
-		    if (!l->derefidx)
-		      printf("sta {%s}",l->name);
+		    if (!l->derefidx) {
+		      if (strcmp(l->name,r->name)) {
+			printf("sta {%s}",l->name);
+		      } else {
+			// Source and target the same, so we have to stash the first byte
+			if (byte<(valid_bytes-1)) {
+			  // all but last byte
+			  printf("pha\n");
+			} else {
+			  // Last - store normally, then pull out the stashed value and
+			  // write it back
+			  printf("sta {%s}+%d\n",l->name,byte);
+			  int b=byte;
+			  while(b) {
+			    printf("pla\n");
+			    b--;
+			    if (b)
+			      printf("sta {%s}+%d\n",l->name,b);
+			    else
+			      printf("sta {%s}\n",l->name);
+			  }
+
+			}
+			override=1;
+		      }
+		    }
 		    else {
 		      // Now resolve the derefencing thing
 		      if (l->derefidx->derefidx) {
@@ -1186,8 +1213,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			}
 		      }
 		    }
-		    if (byte) printf("+%d",byte);
-		    printf("\n");
+		    if (!override) {
+		      if (byte) printf("+%d",byte);
+		      printf("\n");
+		    }
 		  }
 		}
 	      } else {
@@ -1219,7 +1248,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		case 3: printf("%s {%s}+3\n",opcode,l->name); break;
 		}
 		expand_arith_interim_step(comparison_op,byte,l,branch_target, reverse_order);
-		
+
 	      }
 	    } else if (l->deref==2) {
 	      // Reset Y if required
@@ -1292,6 +1321,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      fprintf(stderr,"ERROR: Don't know how to write to this target.\n");
 	      exit(-1);
 	    }
+	  } else {
+	    // byte >= l->bytes
+	    
 	  }
 	  
 	}
