@@ -793,10 +793,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       } else {
 	if (r->reg_a) {	
 	  if (!l->derefidx||!l->derefidx->reg_y) {
-	    if (l->derefidx->deref)
-	      printf("ldy {%s}\n",l->derefidx->name);
-	    else
-	      printf("ldy #{%s}\n",l->derefidx->name);
+	    if (l->derefidx) {
+	      if (l->derefidx->deref)
+		printf("ldy {%s}\n",l->derefidx->name);
+	      else
+		printf("ldy #{%s}\n",l->derefidx->name);
+	    } else printf("ldy {%s}\n",l->name);
 	  }
 	  else printf("tay\n");
 	  printf("sty !+ +1\n");
