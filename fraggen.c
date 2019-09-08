@@ -726,8 +726,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  //	  describe_thing(0,l);
 	  //	  printf("l->pointer=%d\n",l->pointer);
 	  if (l->pointer==2) {
-	    if (!l->derefidx->reg_y)
-	      printf("ldy {%s}\n",l->derefidx->name);       
+	    if (!l->derefidx->reg_y) {
+	      if (l->derefidx->deref)
+		printf("ldy {%s}\n",l->derefidx->name);
+	      else
+		printf("ldy #{%s}\n",l->derefidx->name);
+	    }
 	    printf("ldx {%s},y\n",l->name);
 	    // Use self-modifying code to re-write pointer directly into
 	    // target instruction
@@ -738,8 +742,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  } else {
 	    if (l->derefidx->reg_a)
 	      printf("tay\n");
-	    else if (l->derefidx->name)
-	      printf("ldy {%s}\n",l->derefidx->name);
+	    else if (l->derefidx->name) {
+	      if (l->derefidx->deref)
+		printf("ldy {%s}\n",l->derefidx->name);
+	      else
+		printf("ldy #{%s}\n",l->derefidx->name);
+	    }
 	  }
 	  
 	} else {
@@ -784,8 +792,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	if (r->reg_a) printf("pla\n");
       } else {
 	if (r->reg_a) {	
-	  if (!l->derefidx||!l->derefidx->reg_y)
-	    printf("ldy {%s}\n",l->name);
+	  if (!l->derefidx||!l->derefidx->reg_y) {
+	    if (l->derefidx->deref)
+	      printf("ldy {%s}\n",l->derefidx->name);
+	    else
+	      printf("ldy #{%s}\n",l->derefidx->name);
+	  }
 	  else printf("tay\n");
 	  printf("sty !+ +1\n");
 	  self_modify=1;
@@ -804,8 +816,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     // Read the pointer value
     // (avoiding the A register if that is the source value)
     if (r->reg_a) {
-      if (!l->derefidx->reg_y)
-	printf("ldy {%s}\n",l->name);
+      if (!l->derefidx->reg_y) {
+	if (l->derefidx->deref)
+	  printf("ldy {%s}\n",l->derefidx->name);
+	else
+	  printf("ldy #{%s}\n",l->derefidx->name);
+      }
       else
 	printf("tya\n");
       printf("sty !+ +1\n");
