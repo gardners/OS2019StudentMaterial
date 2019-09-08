@@ -657,7 +657,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     l->bytes=2;
   }
   // Yet another pointer inference kludge
-  if (left[0]=='p'&&right[0]=='p') {
+  if (((left[0]=='p')||!strncmp(left,"_ptr_",5))
+      &&
+      ((right[0]=='p')||!strncmp(right,"_ptr_",5))
+      ) {
     r->bytes=2;
     l->bytes=2;
   }
