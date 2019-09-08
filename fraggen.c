@@ -728,12 +728,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  //	  printf("l->pointer=%d\n",l->pointer);
 	  if (l->pointer==2) {
 	    if (!l->derefidx->reg_y) {
+	      if (l->derefidx->reg_x) {
+		  printf("stx $ff\nldy $ff\n");
+		inner_deref_done=1;
+	      }
 	      if (l->derefidx->deref)
 		printf("ldy {%s}\n",l->derefidx->name);
 	      else 
 		printf("ldy #{%s}\n",l->derefidx->name);
 	      inner_deref_done=1;
-	    }
+	    } 
 	    printf("ldx {%s},y\n",l->name);
 	    // Use self-modifying code to re-write pointer directly into
 	    // target instruction
@@ -744,6 +748,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  } else {
 	    if (l->derefidx->reg_a)
 	      printf("tay\n");
+	    else if (l->derefidx->reg_x) {
+	      printf("stx $ff\nldy $ff\n");
+	      inner_deref_done=1;
+	    }
 	    else if (l->derefidx->name) {
 	      if (l->derefidx->deref)
 		printf("ldy {%s}\n",l->derefidx->name);
@@ -754,7 +762,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  }
 	  
 	} else {
-	  
+	  // Right side is not using a
+	  if (l->derefidx->reg_x) {
+	    printf("txa\ntay\n");
+	    inner_deref_done=1;
+	  } else if (l->derefidx->reg_y) {
+	    // Nothing to do here, as Y is already ready
+	  } else {
+	    // Most ogther situations seem to get handled elsewhere
+	    // printf("ERROR: Unsupported derefidx source when right side is not reg_a\n");
+	  }
 	}
       } else {
 	// De-ref pointer without offset
