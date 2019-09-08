@@ -856,8 +856,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	if ((r->derefidx&&!r->derefidx->reg_y)) show=1;
 	if (!r->derefidx) show=1;
 	if (show) {
-	  printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
-	  y_zero=reverse_order?0:1;
+	  if (r->derefidx&&r->derefidx->name)
+	    printf("ldy #{%s}\n",r->derefidx->name);
+	  else {
+	    printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+	    y_zero=reverse_order?0:1;
+	  }
 	}
       }
       break;
