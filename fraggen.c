@@ -620,7 +620,11 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   int reverse_order=0;
   if ((!l->sign)&&comparison_op) {
     //    printf("unsigned comparison -- consider reversing order\n");
-    reverse_order=1;
+    switch(comparison_op) {
+    case GE: case GT: case LE: case LT:
+      reverse_order=1;
+      break;
+    }
   }
 
   if (l->bytes>valid_bytes) valid_bytes=l->bytes;
