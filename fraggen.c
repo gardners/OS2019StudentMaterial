@@ -584,6 +584,11 @@ void expand_arith_interim_step(int comparison_op,int byte,struct thing *l,char *
       printf("bcc {%s}\nbne !+\n",branch_target);
     }
     break;
+  case LT:
+    if (byte) {
+      printf("bcc {%s}\nbne !+\n",branch_target);
+    }
+    break;
   case LE:    
     if (byte) {
       //   if (!reverse_order)
@@ -1326,6 +1331,9 @@ int generate_comparison(char *destination,char *comparison)
     printf("beq {%s}\n!:\n",destination);
     break;
   case GT:
+    printf("bcc {%s}\n!:\n",destination);
+    break;
+  case LT:
     printf("bcc {%s}\n!:\n",destination);
     break;
   }
