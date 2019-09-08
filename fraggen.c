@@ -391,7 +391,11 @@ struct thing *parse_thing(char *left)
     t=t2;
     t->early_deref++;
     t->deref++;
-  }   else {
+  } else if (left[0]>='0'&&left[0]<='9') {
+    // Literal number
+    t->name=left;
+    t->bytes=99;
+  }  else {
     fprintf(stderr,"Don't know how to parse left argument '%s'\n",left);
     exit(-1);
   }
@@ -571,7 +575,8 @@ void expand_arith_interim_step(int comparison_op,int byte,struct thing *l,char *
     if (byte<(l->bytes-1)) printf("bne !+\n");
     break;
     
-  case NE: printf("bne {%s}\n",branch_target); break;
+  case NE:
+    printf("bne {%s}\n",branch_target); break;
     
   case GE:
     if (!l->sign) {
@@ -944,12 +949,15 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		  // Jesper uses (1) because it is faster in some cases.
 		  // This makes our life harder, because we have to enable reverse order
 		}
-		
-		switch(byte) {
-		case 0: printf("%s #<{%s}\n",opcode,l->name); break;
-		case 1: printf("%s #>{%s}\n",opcode,l->name); break;
-		case 2: printf("%s #<{%s}>>16\n",opcode,l->name); break;
-		case 3: printf("%s #>{%s}>>16\n",opcode,l->name); break;
+
+		// No need to do CMP if comparing with zero
+		if (strcmp(l->name,"0")) {
+		  switch(byte) {
+		  case 0: printf("%s #<{%s}\n",opcode,l->name); break;
+		  case 1: printf("%s #>{%s}\n",opcode,l->name); break;
+		  case 2: printf("%s #<{%s}>>16\n",opcode,l->name); break;
+		  case 3: printf("%s #>{%s}>>16\n",opcode,l->name); break;
+		  }
 		}
 		expand_arith_interim_step(comparison_op,byte,l,branch_target, reverse_order);
 	      }
