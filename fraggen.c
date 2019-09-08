@@ -696,11 +696,13 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     r->bytes=2;
     l->bytes=2;
   }
+  if (left[0]=='p'&&(r->bytes==2)) l->bytes=2;
   
   //  describe_thing(0,l);
 
   int shortcut_taken=0;
   int a_zero=0;
+  int reg_a_in_y=0;
   int inner_deref_done=0;
   int simple_pointer_cast=0;
   int valid_bytes=1;
@@ -1069,7 +1071,14 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    } else if (r->deref==1) {
 	      if (shift_offset+byte>=0) {
 		if (!simple_pointer_cast) {
-		  
+
+		  if (!byte) {
+		    if (r->derefidx&&r->derefidx->reg_a) {
+		      printf("tay\n");
+		      reg_a_in_y=1;
+		    }
+		  }
+		      
 		  if ((r->arg_op==OP_PLUS)&&(!strcmp(l->name,r->name))
 		      &&literal_byte&&byte) {
 		    printf("inc {%s}+1\n!:\n",l->name);
@@ -1080,7 +1089,51 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 
 		  if (!shortcut_taken) {
 		    if (byte+shift_offset) printf("+%d",byte+shift_offset);
-		    if (r->derefidx&&r->derefidx->reg_x) {
+		    if (r->derefidx&&r->derefidx->reg_a) {
+		      // We convert these to Y relative
+		      printf(",y");
+		      if (r->derefidx->arg_thing) {
+			printf("\n");
+			if (!byte) {
+			  printf("clc\n");
+			  if (!r->derefidx->arg_thing->deref)
+			    printf("adc #{%s}",r->derefidx->arg_thing->name);
+			  else {
+			    printf("adc {%s}",r->derefidx->arg_thing->name);
+			    if (r->derefidx->arg_thing->derefidx) {
+			      if (r->derefidx->arg_thing->derefidx->reg_a) {
+				if (reg_a_in_y) printf(",y");
+				else printf("[ERROR: cannot resolve nested derefence]");
+			      } else if (r->derefidx->arg_thing->derefidx->reg_y) {
+				printf(",y");
+			      } else if (r->derefidx->arg_thing->derefidx->reg_x) {
+				printf(",x");
+			      } else {
+				printf("[ERROR: cannot resolve nested derefence]");				
+			      }
+			    }
+			  }
+			} else {
+			  if (byte<(valid_bytes)) {
+			    printf("adc {%s}+%d",r->derefidx->arg_thing->name,byte);
+			    if (r->derefidx->arg_thing->derefidx) {
+			      if (r->derefidx->arg_thing->derefidx->reg_a) {
+				if (reg_a_in_y) printf(",y");
+				else printf("[ERROR: cannot resolve nested derefence]");
+			      } else if (r->derefidx->arg_thing->derefidx->reg_y) {
+				printf(",y");
+			      } else if (r->derefidx->arg_thing->derefidx->reg_x) {
+				printf(",x");
+			      } else {
+				printf("[ERROR: cannot resolve nested derefence]");				
+			      }
+			    }
+			    
+			  } else 
+			    printf("adc #0");
+			}
+		      }
+		    } else if (r->derefidx&&r->derefidx->reg_x) {
 		      printf(",x");
 		      if (r->derefidx->arg_thing) {
 			printf("\n");
@@ -1245,7 +1298,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			} else {
 			  // Last - store normally, then pull out the stashed value and
 			  // write it back
-			  printf("sta {%s}+%d\n",l->name,byte);
+			  if (byte)
+			    printf("sta {%s}+%d\n",l->name,byte);
+			  else
+			    printf("sta {%s}\n",l->name);
 			  int b=byte;
 			  while(b) {
 			    printf("pla\n");
@@ -1288,8 +1344,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		      } else {
 			// We have a derefidx, but that itself does not have a derefidx
 			if (l->derefidx->reg_a) {
-			  printf("tax\n");
-			  printf("sta {%s},x",l->name);
+			  if (reg_a_in_y) {
+			    if (byte)
+			      printf("sta {%s}+%d,y\n",l->name,byte);
+			    else
+			      printf("sta {%s},y\n",l->name);
+			    override=1;
+			  } else {
+			    printf("tax\n");
+			    printf("sta {%s},x",l->name);
+			  }
 			} else if (l->derefidx->reg_x) {
 			  printf("sta {%s},x",l->name);
 			} else if (l->derefidx->reg_y) {
