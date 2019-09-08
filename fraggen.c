@@ -722,15 +722,25 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	// the address
 	if (r->reg_a) {
 	  // Avoid using A, since we want to use it
-	  if (!l->derefidx->reg_y)
-	    printf("ldy {%s}\n",l->derefidx->name);	  
-	  printf("ldx {%s},y\n",l->name);
-	  // Use self-modifying code to re-write pointer directly into
-	  // target instruction
-	  printf("stx !+ +1\n");
-	  printf("ldx {%s}+1,y\n",l->name);
-	  printf("stx !+ +2\n");
-	  self_modify=1;
+
+	  //	  describe_thing(0,l);
+	  //	  printf("l->pointer=%d\n",l->pointer);
+	  if (l->pointer==2) {
+	    if (!l->derefidx->reg_y)
+	      printf("ldy {%s}\n",l->derefidx->name);       
+	    printf("ldx {%s},y\n",l->name);
+	    // Use self-modifying code to re-write pointer directly into
+	    // target instruction
+	    printf("stx !+ +1\n");
+	    printf("ldx {%s}+1,y\n",l->name);
+	    printf("stx !+ +2\n");
+	    self_modify=1;
+	  } else {
+	    if (l->derefidx->reg_a)
+	      printf("tay\n");
+	    else if (l->derefidx->name)
+	      printf("ldy {%s}\n",l->derefidx->name);
+	  }
 	  
 	} else {
 	  
@@ -774,7 +784,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	if (r->reg_a) printf("pla\n");
       } else {
 	if (r->reg_a) {	
-	  printf("ldy {%s}\n",l->name);
+	  if (!l->derefidx||!l->derefidx->reg_y)
+	    printf("ldy {%s}\n",l->name);
+	  else printf("tay\n");
 	  printf("sty !+ +1\n");
 	  self_modify=1;
 	} else {
@@ -792,7 +804,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     // Read the pointer value
     // (avoiding the A register if that is the source value)
     if (r->reg_a) {
-      printf("ldy {%s}\n",l->name);
+      if (!l->derefidx->reg_y)
+	printf("ldy {%s}\n",l->name);
+      else
+	printf("tya\n");
       printf("sty !+ +1\n");
       self_modify=1;
     } else {
@@ -950,7 +965,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		printf("txa\n");
 	    } else if (r->reg_y) {
 	      if (l->reg_a)
-		printf("tya\n");
+		printf("tay\n");
 	    } else if (r->deref==0) {
 	      if (shift_offset+byte>=0) {
 		switch(byte) {
