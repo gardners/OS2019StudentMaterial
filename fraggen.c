@@ -1052,8 +1052,13 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		  // If adding a constant number that is one byte, then
 		  // short cut with incrementing the upper byte
 		  int literal_byte=0;
-		  if (r->arg_thing)
-		    if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
+		  if (r->arg_thing&&r->arg_thing->name) {
+		    if (r->arg_thing->name[0]>='0'&&r->arg_thing->name[0]<='9') 
+		      if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
+		    if ((r->arg_thing->name[0]=='c')&&r->arg_thing->bytes==1)
+		      literal_byte=1;
+		  }
+
 		  
 		  if ((r->arg_op==OP_PLUS)&&(!strcmp(l->name,r->name))
 		      &&literal_byte&&byte) {
