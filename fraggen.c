@@ -613,6 +613,18 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   }
   
   //  describe_thing(0,l);
+
+  int valid_bytes=1;
+  int skip_dey=1;
+  int byte=0;
+  int reverse_order=0;
+  if ((!l->sign)&&comparison_op) {
+    //    printf("unsigned comparison -- consider reversing order\n");
+    reverse_order=1;
+  }
+
+  if (l->bytes>valid_bytes) valid_bytes=l->bytes;
+  if (r->bytes>valid_bytes) valid_bytes=r->bytes;  
   
   // Do any setup we need, e.g., for pointer access
   if (l->deref>1||r->deref>1) {
@@ -620,7 +632,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     switch(l->deref) {
     case 0:
       // No deref, nothing to do
-      if (r->deref) printf("ldy #0\n");
+      if (r->deref) printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
       break;
     case 1:
       printf("ldy #0 ; one\n");
@@ -739,14 +751,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       // Handled further down
     }
     else {
-      for(int byte=0;byte<4;byte++)
+      for(int rbyte=0;rbyte<4;rbyte++)
 	{
+	  if (reverse_order) byte=3-rbyte; else byte=rbyte;
+	  
 	  if (0)
 	    printf("; byte %d, deref = %d,%d.  lbytes=%d, rbytes=%d\n",
 		   byte,l->deref,r->deref,l->bytes,r->bytes);
 	  
 	  // Stop once we have no more bytes to deal with
-	  if (l->bytes<=byte&&r->bytes<=byte) break;
+	  if (l->bytes<=byte&&r->bytes<=byte) continue;
 	  
 	  // only increment Y if there are more bytes coming,
 	  // and we have sufficient dereferencing to make it needed
@@ -760,7 +774,13 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if ((!l->derefidx||!l->derefidx->reg_y)) {
 		if (deref2_uses_y(r)) printf("ldy $ff\n");
 	      }
-	      printf("iny\n");
+	      if (!reverse_order) printf("iny\n");
+	    }
+	  if (rbyte) 
+	    if (l->deref>1||r->deref>1) {
+	      if (reverse_order&&(!skip_dey))
+		printf("dey\n");
+	      skip_dey=0;
 	    }
 	  if (!byte) {
 	    if (shift_offset<0) printf("lda #0\n");
@@ -859,13 +879,26 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");
 	      } else {
 		char *opcode="cmp";
-		
-		if (byte>=(l->bytes-1)) {
-		  switch(comparison_op) {
-		  case GE: case LT: case LE: case GT: opcode="sbc";
-		    break;
+
+		if (l->sign) {
+
+		  // For signed comparisons we have to do the complete sequence and finish
+		  // with SBC so that V flag gets set to indicate overflow or not.
+		  if (byte>=(l->bytes-1)) {
+		    switch(comparison_op) {
+		    case GE: case LT: case LE: case GT: opcode="sbc";
+		      break;
+		    }
 		  }
+		} else {
+		  // For unsigned comparisons we can either (1) use reversed byte order to
+		  // short-circuit the comparison to save some cycles when the higher-order
+		  // bytes reveal the result early, or (2) do the comparison in normal order
+		  // and check if the result is negative, zero or positive.
+		  // Jesper uses (1) because it is faster in some cases.
+		  // This makes our life harder, because we have to enable reverse order
 		}
+		
 		switch(byte) {
 		case 0: printf("%s #<{%s}\n",opcode,l->name); break;
 		case 1: printf("%s #>{%s}\n",opcode,l->name); break;
@@ -879,6 +912,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		  break;
 		  
 		case NE: printf("bne {%s}\n",branch_target); break;
+
+		case GE:
+		  if (!l->sign) {
+		    printf("bcc !+\nbne {%s}\n",branch_target);
+		  }
+		  break;
 		}
 	      }
 	    } else if (l->deref==1) {
@@ -1133,8 +1172,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	}
       }  
     }
-  } 
-  return 0;
+  }
+  // We need to indicate if it is signed, so that patching the end of comparisons can work
+  return l->sign;
 }
 
 int generate_comparison(char *destination,char *comparison)
@@ -1164,13 +1204,18 @@ int generate_comparison(char *destination,char *comparison)
 
   //  printf("left='%s', right='%s', op=%d\n",left,right,op);
 
-  generate_assignment(right,left,op,destination);
+  int is_signed=generate_assignment(right,left,op,destination);
   switch(op) {
   case GE:
-    printf("bvc !+\n");
-    printf("eor #$80\n");
-    printf("!:\n");
-    printf("bpl {%s}\n",destination);
+    if (is_signed) {
+      printf("bvc !+\n");
+      printf("eor #$80\n");
+      printf("!:\n");
+      printf("bpl {%s}\n",destination);
+    } else {
+      printf("bcs {%s}\n",destination);
+      printf("!:\n");      
+    }
     break;
   case EQ:
     printf("beq {%s}\n!:\n",destination);
