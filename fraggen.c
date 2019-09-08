@@ -858,20 +858,27 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if (!comparison_op) {
 		printf("ERROR: Writing to variables with no de-reference doesn't make sense.\n");
 	      } else {
+		char *opcode="cmp";
+		
 		if (byte>=(l->bytes-1)) {
-		  switch(byte) {
-		  case 0: printf("sbc #<{%s}\n",l->name); break;
-		  case 1: printf("sbc #>{%s}\n",l->name); break;
-		  case 2: printf("sbc #<{%s}>>16\n",l->name); break;
-		  case 3: printf("sbc #>{%s}>>16\n",l->name); break;
+		  switch(comparison_op) {
+		  case GE: case LT: case LE: case GT: opcode="sbc";
+		    break;
 		  }
-		} else {
-		  switch(byte) {
-		  case 0: printf("cmp #<{%s}\n",l->name); break;
-		  case 1: printf("cmp #>{%s}\n",l->name); break;
-		  case 2: printf("cmp #<{%s}>>16\n",l->name); break;
-		  case 3: printf("cmp #>{%s}>>16\n",l->name); break;
-		  }
+		}
+		switch(byte) {
+		case 0: printf("%s #<{%s}\n",opcode,l->name); break;
+		case 1: printf("%s #>{%s}\n",opcode,l->name); break;
+		case 2: printf("%s #<{%s}>>16\n",opcode,l->name); break;
+		case 3: printf("%s #>{%s}>>16\n",opcode,l->name); break;
+		}
+		switch(comparison_op) {
+		case EQ:
+		  
+		  if (byte<(l->bytes-1)) printf("bne !+\n");
+		  break;
+		  
+		case NE: printf("bne {%s}\n",branch_target); break;
 		}
 	      }
 	    } else if (l->deref==1) {
@@ -1164,6 +1171,9 @@ int generate_comparison(char *destination,char *comparison)
     printf("eor #$80\n");
     printf("!:\n");
     printf("bpl {%s}\n",destination);
+    break;
+  case EQ:
+    printf("beq {%s}\n!:\n",destination);
     break;
   }
   return 0; 
