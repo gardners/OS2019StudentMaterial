@@ -400,6 +400,16 @@ struct thing *parse_thing(char *left)
     exit(-1);
   }
 
+  // _plus_ etc have higher operator precedence, so we have to promote these to the top of the tree
+  if (!t->arg_thing) {    
+    if (t->derefidx&&t->derefidx->arg_thing) {
+      t->arg_thing=t->derefidx->arg_thing;
+      t->arg_op=t->derefidx->arg_op;
+      t->derefidx->arg_thing=NULL;
+      t->derefidx->arg_op=0;
+    }
+  }
+  
   return t;
 }   
 
@@ -429,7 +439,7 @@ void dump_mem(char *msg,void *m,int size)
 
 void describe_thing(int depth,struct thing *t)
 {
-  printf("thing = %p\n",t);
+  //  printf("thing = %p\n",t);
   //  dump_mem("t",t,sizeof(*t));
   for(int i=0;i<depth;i++) printf(" ");
   if (t->reg_a) printf("reg_a");
@@ -472,7 +482,13 @@ void expand_op(int byte,struct thing *r)
   describe_thing(0,r);
   printf("r=%p\n",r);
   printf("r->arg_thing=%p\n",r->arg_thing);
+  printf("r->arg_op=%d\n",r->arg_op);
+  if (r->derefidx) {
+    printf("r->derefidx->arg_thing=%p\n",r->derefidx->arg_thing);
+    printf("r->derefidx->arg_op=%d\n",r->derefidx->arg_op);
+  }
 #endif
+    
   if (r->arg_thing) {
     int literal_byte=0;
 
@@ -575,7 +591,6 @@ void expand_op(int byte,struct thing *r)
       default:
 	printf("ERROR: not implemented.\n");
       }      
-      break;
       break;
     }
   }
@@ -750,6 +765,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   int shortcut_taken=0;
   int a_zero=0;
   int reg_a_in_y=0;
+  char *name_in_y="";
   int inner_deref_done=0;
   int simple_pointer_cast=0;
   int valid_bytes=1;
@@ -1033,7 +1049,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  printf("txa\n");
 	  printf("tay\n");
 	} else {
-	  printf("ldy #0\nlda ({%s}),y\ntay\n",r->derefidx->name);
+	  if (r->derefidx->deref>1)
+	    printf("ldy #0\nlda ({%s}),y\ntay\n",r->derefidx->name);
+	  else {
+	    printf("ldy {%s}\n",r->derefidx->name);
+	    name_in_y=r->derefidx->name;
+	  }
 	  inner_deref_done=1;
 	}
       }
@@ -1157,7 +1178,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		      }
 		    }
 		    else if (r->derefidx) {
-		      printf("[UNIMPLMENENTED DEREF]\n");
+		      if (!strcmp(r->derefidx->name,name_in_y))
+			printf(",y");
+		      else
+			printf("[UNIMPLMENENTED DEREF]\n");
 		    }
 		    printf("\n");
 		  }
@@ -1366,8 +1390,15 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			  else
 			    printf("sta {%s},y\n",l->name);
 			  override=1;
+			} else if (!strcmp(l->derefidx->name,name_in_y)) {
+			  if (byte)
+			    printf("sta {%s}+%d,y\n",l->name,byte);
+			  else
+			    printf("sta {%s},y\n",l->name);
+			  override=1;
 			} else {
 			  printf("ERROR: Unsupported nested derefence form (line %d)\n",__LINE__);
+			  printf("derefidx name is '%s'\n",l->derefidx->name);
 			}
 		      }
 		    }
