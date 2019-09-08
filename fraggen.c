@@ -919,7 +919,8 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 
 		case GE:
 		  if (!l->sign) {
-		    printf("bcc !+\nbne {%s}\n",branch_target);
+		    if (byte||(!reverse_order))
+		      printf("bcc !+\nbne {%s}\n",branch_target);
 		  }
 		  break;
 		}
