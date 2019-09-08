@@ -27,6 +27,8 @@
 #define LVALUE_FORMS 72
 #define RVALUE_FORMS 67392
 
+int debug_deref=0;
+
 char lvalue_name_ret[1024];
 char *lvalue_name(int idx)
 {
@@ -131,6 +133,7 @@ struct thing {
   int lo;
   int inc;
   int deref;
+  int post_deref;
   int early_deref;
   int sign;
   int shift;
@@ -168,6 +171,7 @@ void parse_thing_common(char *left,struct thing *t)
   case 'w': t->bytes=2; break;
   case 'p': t->bytes=2; break;
   case 's': t->bytes=2; break;
+  case 'v': t->bytes=2; break;
   case 'b': t->bytes=1; break;
   default:
     fprintf(stderr,"Can't parse size '%c'\n",left[1]);
@@ -202,6 +206,7 @@ void parse_thing_common(char *left,struct thing *t)
   case 'z':
     // There is an extra level of indirection for Z versus C.
     // Do we need to do anything else here to implement it?
+    if (debug_deref) printf("deref from zp\n");
     t->deref++;
   case 'c':
     t->name=&left[3];
@@ -279,6 +284,7 @@ void parse_thing_common(char *left,struct thing *t)
 	}
 	//	  fprintf(stderr,"Trying to parse suffix '%s'\n",suffix);
 	t->derefidx=parse_thing(suffix);
+	if (debug_deref) printf("deref due to derefidx\n");
 	t->deref++;
 	suffix=NULL;
       }
@@ -327,7 +333,9 @@ struct thing *parse_thing(char *left)
     left+=strlen("_word_");
   }
   while(!strncmp(left,"_deref_",7)) {
+    if (debug_deref) printf("_deref_\n");
     t->deref++;
+    t->post_deref++;
     left+=strlen("_deref_");
     if (left[0]=='(') {
       left++;
@@ -389,6 +397,7 @@ struct thing *parse_thing(char *left)
     }
     free(t);
     t=t2;
+    if (debug_deref) printf("deref via re-write\n");
     t->early_deref++;
     t->deref++;
   } else if (left[0]>='0'&&left[0]<='9') {
@@ -773,10 +782,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   }
   if (left[0]=='p'&&(r->bytes==2)) l->bytes=2;
   if (left[0]=='p'&&left[1]=='p'&&right[0]=='p') { l->bytes=2; r->bytes=2; }
+  if (left[0]=='p'&&left[1]=='p'&&(!strncmp(right,"_ptr_",5))) { l->bytes=2; }
   
   int y_incremented=0;
   int shortcut_taken=0;
   int a_zero=0;
+  int y_zero=0;
   int reg_a_in_y=0;
   char *name_in_y="";
   int inner_deref_done=0;
@@ -831,7 +842,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     switch(l->deref) {
     case 0:
       // No deref, nothing to do
-      if (r->deref) printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+      if (r->deref) {
+	printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+	y_zero=reverse_order?0:1;
+      }
       break;
     case 1:
       {
@@ -840,7 +854,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	if (!l->derefidx) show=1;
 	if ((r->derefidx&&!r->derefidx->reg_y)) show=1;
 	if (!r->derefidx) show=1;
-	if (show) printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+	if (show) {
+	  printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+	  y_zero=reverse_order?0:1;
+	}
       }
       break;
     case 2:
@@ -851,8 +868,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  // Avoid using A, since we want to use it
 
 	  //	  describe_thing(0,l);
-	  //	  printf("l->pointer=%d\n",l->pointer);
-	  if (l->pointer==2) {
+	  if (0) printf("l->pointer=%d, l->deref=%d, r->pointer=%d, l->early_deref=%d,l->post_deref=%d\n",
+			l->pointer,l->deref,r->pointer,l->early_deref,l->post_deref);
+	  //	  describe_thing(0,l);
+	  if (l->pointer==2&&l->post_deref) {
 	    if (!l->derefidx->reg_y) {
 	      if (l->derefidx->reg_x) {
 		  printf("stx $ff\nldy $ff\n");
@@ -862,6 +881,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		printf("ldy {%s}\n",l->derefidx->name);
 	      else 
 		printf("ldy #{%s}\n",l->derefidx->name);
+	      y_zero=0;
 	      inner_deref_done=1;
 	    } 
 	    printf("ldx {%s},y\n",l->name);
@@ -883,6 +903,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		printf("ldy {%s}\n",l->derefidx->name);
 	      else
 		printf("ldy #{%s}\n",l->derefidx->name);
+	      y_zero=0;
 	      inner_deref_done=1;
 	    }
 	  }
@@ -908,6 +929,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  if (deref2_uses_y(r)) printf("sty $ff\n");
 	  else {
 	    printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+	    y_zero=reverse_order?0:1;
 	  }
 	}
 	if (l->early_deref) {
@@ -928,6 +950,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     case 3:
       if (l->derefidx) {
 	if (r->reg_a) printf("pha\n");
+	y_zero=0;
 	printf("ldy #{%s}\n",l->derefidx->name);
 	printf("lda ({%s}),y\n",l->name);
 	printf("sta !+ +1\n");
@@ -945,6 +968,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      else
 		printf("ldy #{%s}\n",l->derefidx->name);
 	    } else printf("ldy {%s}\n",l->name);
+	    y_zero=0;
 	  }
 	  else printf("tay\n");
 	  printf("sty !+ +1\n");
@@ -955,6 +979,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  self_modify=1;
 	}
 	printf("ldy #0\n");
+	y_zero=1;
       }
       break;
     default:
@@ -969,6 +994,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  printf("ldy {%s}\n",l->derefidx->name);
 	else
 	  printf("ldy #{%s}\n",l->derefidx->name);
+	y_zero=0;
       }
       else {
 	printf("tya\n");
@@ -999,8 +1025,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    printf("lda ({%s}),y\ntay\n",l->derefidx->derefidx->name);	    
 	    inner_deref_done=1;
 	  } else {
-	    if (!l->derefidx->reg_x)
+	    if (!l->derefidx->reg_x) {
 	      printf("ldy #0\n");
+	      y_zero=1;
+	    }
 	  }
 	  if (l->derefidx->name) {
 	    printf("lda ({%s}),y\ntax\n",l->derefidx->name);
@@ -1038,8 +1066,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  printf("lda ({%s}),y\ntay\n",l->derefidx->derefidx->name);	    
 	  inner_deref_done=1;
 	} else {
-	  if (!l->derefidx->reg_x)
+	  if (!l->derefidx->reg_x) {
 	    printf("ldy #0\n");
+	    y_zero=1;
+	  }
 	}
 	if (l->derefidx->name) {
 	  printf("lda ({%s}),y\ntax\n",l->derefidx->name);
@@ -1069,8 +1099,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  printf("txa\n");
 	  printf("tay\n");
 	} else {
-	  if (r->derefidx->deref>1)
+	  if (r->derefidx->deref>1) {
 	    printf("ldy #0\nlda ({%s}),y\ntay\n",r->derefidx->name);
+	    y_zero=1;
+	  }
 	  else {
 	    printf("ldy {%s}\n",r->derefidx->name);
 	    name_in_y=r->derefidx->name;
@@ -1110,7 +1142,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      // Get $00 into A for upper bytes by copying
 	      // the zero value currently in Y
 	      if (r->reg_a&&l->bytes>1) {
-		printf("tya\n");
+		if ((r->bytes>1)||(y_zero))
+		  printf("tya\n");
+		else
+		  printf("lda #0\n");
 		a_zero=1;
 	      }
 
@@ -1600,7 +1635,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      printf("iny\n");
 	    }
 	  }
-	  if (l->deref>1||r->deref>1) printf("ldy #0\n");
+	  if (l->deref>1||r->deref>1) { printf("ldy #0\n"); y_zero=1; }
 	}
 	
 	// Should thiss be #{c1} or {c1}?
@@ -1644,6 +1679,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    break;
 	  case 2:
 	    printf("ldy #0\n");
+	    y_zero=1;
 	    for(int b=1;b<=l->bytes;b++) {
 	      if (b==1)
 		printf("asl ({%s}),y",l->name);
@@ -1672,6 +1708,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    break;
 	  case 2:
 	    printf("ldy #%d\n",l->bytes-1);
+	    if (l->bytes-1) y_zero=0; else y_zero=1;
 	    for(int b=l->bytes;b;b--) {
 	      if (b==l->bytes)
 		printf("lsr ({%s}),y",l->name);
@@ -1708,6 +1745,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    break;
 	  case 2:
 	    printf("ldy #0\n");
+	    y_zero=1;
 	    for(int b=1;b<=l->bytes;b++) {
 	      if (b==1)
 		printf("asl ({%s}),y",l->name);
