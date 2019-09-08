@@ -808,9 +808,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  if (l->derefidx->derefidx) {
 	    printf("lda ({%s}),y\ntay\n",l->derefidx->derefidx->name);	    
 	  } else {
-	    printf("ldy #0\n");
+	    if (!l->derefidx->reg_x)
+	      printf("ldy #0\n");
 	  }
-	  printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+	  if (l->derefidx->name) {
+	    printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+	  } else if (l->derefidx->reg_x) {
+	    // Nothing to do
+	  } else {
+	    printf("ERROR: unsupported derefence\n");
+	  }
 	}
 	printf("inc {%s},x\n",r->name);
       }
@@ -836,9 +843,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	if (l->derefidx->derefidx) {
 	  printf("lda ({%s}),y\ntay\n",l->derefidx->derefidx->name);	    
 	} else {
-	  printf("ldy #0\n");
+	  if (!l->derefidx->reg_x)
+	    printf("ldy #0\n");
 	}
-	printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+	if (l->derefidx->name) {
+	  printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+	} else if (l->derefidx->reg_x) {
+	  // Nothing to do
+	} else {
+	  printf("ERROR: unsupported derefence\n");
+	}
       }
       printf("dec {%s},x\n",r->name);
     }
@@ -1247,7 +1261,13 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    printf("ldx {%s}\n",r->shift_thing->name);
 	    break;
 	  case 2:
+	    if (r->shift_thing->name) {
 	    printf("lda ({%s}),y\ntax\n",r->shift_thing->name);
+	    } else if (r->shift_thing->reg_x) {
+	      // Nothing to do
+	    } else {
+	      printf("ERROR: unsupported derefence\n");
+	    }
 	    break;
 	  default:
 	    printf("ERROR: shift value must not be dereferenced > 2 levels.\n");
