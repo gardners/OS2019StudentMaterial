@@ -1073,7 +1073,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		case 3: printf("adc #>$%x>>16\n",r->inc); break;
 		}
 	      } else {
-		printf("adc #%d\n",r->inc); break;
+		printf("adc #%d\n",r->inc);
 	      }
 	    } else {
 	      if (!byte) printf("sec\n");
