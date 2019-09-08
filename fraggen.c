@@ -1065,11 +1065,15 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    if (r->bytes==2&&r->inc&0x8000) add=0;
             if (add) {
 	      if (!byte) printf("clc\n");
-	      switch(byte) {
-	      case 0: printf("adc #<$%x\n",r->inc); break;
-	      case 1: printf("adc #>$%x\n",r->inc); break;
-	      case 2: printf("adc #<$%x>>16\n",r->inc); break;
-	      case 3: printf("adc #>$%x>>16\n",r->inc); break;
+	      if (valid_bytes>1) {
+		switch(byte) {
+		case 0: printf("adc #<$%x\n",r->inc); break;
+		case 1: printf("adc #>$%x\n",r->inc); break;
+		case 2: printf("adc #<$%x>>16\n",r->inc); break;
+		case 3: printf("adc #>$%x>>16\n",r->inc); break;
+		}
+	      } else {
+		printf("adc #%d\n",r->inc); break;
 	      }
 	    } else {
 	      if (!byte) printf("sec\n");
