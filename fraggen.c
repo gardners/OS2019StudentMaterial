@@ -656,7 +656,10 @@ void expand_derefidx_arg(int byte,struct thing *r,
     }
   } else {
     if (byte<(valid_bytes)) {
-      printf("adc {%s}+%d",r->derefidx->arg_thing->name,byte);
+      if (byte<r->derefidx->arg_thing->bytes)
+	printf("adc {%s}+%d",r->derefidx->arg_thing->name,byte);
+      else
+	printf("adc #0");
       if (r->derefidx->arg_thing->derefidx) {
 	if (r->derefidx->arg_thing->derefidx->reg_a) {
 	  if (reg_a_in_y) printf(",y");
