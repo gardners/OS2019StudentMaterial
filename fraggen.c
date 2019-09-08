@@ -652,7 +652,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       (l->pointer>l->deref)||
       (!strncmp("_deref_pp",left,9))) {
     // Pointers
-    //    printf("Inferring pointers.\n");
+    //    printf("Inferring pointers %d.\n",__LINE__);
     r->bytes=2;
     l->bytes=2;
   }
@@ -660,7 +660,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   if (((left[0]=='p')||!strncmp(left,"_ptr_",5))
       &&
       ((right[0]=='p')||!strncmp(right,"_ptr_",5))
+      &&(!l->derefidx)
+      &&(!r->derefidx)
       ) {
+    // printf("Inferring pointers %d.\n",__LINE__);
     r->bytes=2;
     l->bytes=2;
   }
@@ -1036,7 +1039,22 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		else {
 		  expand_op(byte,r);
 		  if (!simple_pointer_cast) {
-		    printf("sta {%s}",l->name);
+		    if (!l->derefidx)
+		      printf("sta {%s}",l->name);
+		    else {
+		      // Now resolve the derefencing thing
+		      if (l->derefidx->derefidx) {
+			if (l->derefidx->derefidx->reg_x) {
+			  printf("ldy {%s},x\n",l->derefidx->name);
+			  printf("sta {%s},y",l->name);
+			} else if (l->derefidx->derefidx->reg_y) {
+			  printf("ldx {%s},y\n",l->derefidx->name);
+			  printf("sta {%s},x",l->name);
+			} else {
+			  printf("ERROR: Unsupported nested derefence form\n");
+			}
+		      }
+		    }
 		    if (byte) printf("+%d",byte);
 		    printf("\n");
 		  }
