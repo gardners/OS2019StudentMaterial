@@ -465,10 +465,14 @@ void describe_thing(int depth,struct thing *t)
 }
 
 void expand_op(int byte,struct thing *r)
-{  
-  //  describe_thing(0,r);
-  //  printf("r=%p\n",r);
-  //  printf("r->arg_thing=%p\n",r->arg_thing);
+{
+  //  printf("expand_op %p\n",r);
+  
+#if 0
+  describe_thing(0,r);
+  printf("r=%p\n",r);
+  printf("r->arg_thing=%p\n",r->arg_thing);
+#endif
   if (r->arg_thing) {
     int literal_byte=0;
 
@@ -1076,8 +1080,29 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 
 		  if (!shortcut_taken) {
 		    if (byte+shift_offset) printf("+%d",byte+shift_offset);
-		    if (r->derefidx&&r->derefidx->reg_x) printf(",x");
-		    else if (r->derefidx&&r->derefidx->reg_y) printf(",y");
+		    if (r->derefidx&&r->derefidx->reg_x) {
+		      printf(",x");
+		      if (r->derefidx->arg_thing) {
+			printf("\n");
+			if (!byte) {
+			  printf("clc\n");
+			  printf("adc #{%s}",r->derefidx->arg_thing->name);
+			} else {
+			  printf("adc #0");
+			}
+		      }
+		    } else if (r->derefidx&&r->derefidx->reg_y) {
+		      printf(",y");
+		      if (r->derefidx->arg_thing) {
+			printf("\n");
+			if (!byte) {
+			  printf("clc\n");
+			  printf("adc #{%s}",r->derefidx->arg_thing->name);
+			} else {
+			  printf("adc #0");
+			}
+		      }
+		    }
 		    else if (r->derefidx) {
 		      printf("[UNIMPLMENENTED DEREF]\n");
 		    }
@@ -1205,7 +1230,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		else if (r->reg_y) printf("sty {%s}",l->name);
 		else if (!shortcut_taken) {
 		  int override=0;
-		  //		  describe_thing(0,r);
+		  // describe_thing(0,r);
 		  expand_op(byte,r);
 		  if (!simple_pointer_cast) {
 		    if (!l->derefidx) {
