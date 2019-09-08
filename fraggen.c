@@ -631,7 +631,51 @@ void expand_arith_interim_step(int comparison_op,int byte,struct thing *l,char *
     break;
   }		
 }
-  
+
+void expand_derefidx_arg(int byte,struct thing *r,
+			 int reg_a_in_y, int valid_bytes)
+{
+  if (!byte) {
+    printf("clc\n");
+    if (!r->derefidx->arg_thing->deref) {
+      printf("adc #{%s}",r->derefidx->arg_thing->name);
+    } else {
+      printf("adc {%s}",r->derefidx->arg_thing->name);
+      if (r->derefidx->arg_thing->derefidx) {
+	if (r->derefidx->arg_thing->derefidx->reg_a) {
+	  if (reg_a_in_y) printf(",y");
+	  else printf("[ERROR: cannot resolve nested derefence]");
+	} else if (r->derefidx->arg_thing->derefidx->reg_y) {
+	  printf(",y");
+	} else if (r->derefidx->arg_thing->derefidx->reg_x) {
+	  printf(",x");
+	} else {
+	  printf("[ERROR: cannot resolve nested derefence]");				
+	}
+      }
+    }
+  } else {
+    if (byte<(valid_bytes)) {
+      printf("adc {%s}+%d",r->derefidx->arg_thing->name,byte);
+      if (r->derefidx->arg_thing->derefidx) {
+	if (r->derefidx->arg_thing->derefidx->reg_a) {
+	  if (reg_a_in_y) printf(",y");
+	  else printf("[ERROR: cannot resolve nested derefence]");
+	} else if (r->derefidx->arg_thing->derefidx->reg_y) {
+	  printf(",y");
+	} else if (r->derefidx->arg_thing->derefidx->reg_x) {
+	  printf(",x");
+	} else {
+	  printf("[ERROR: cannot resolve nested derefence]");				
+	}
+      }
+      
+    } else 
+      printf("adc #0");
+  }
+}
+
+
 int generate_assignment(char *left, char *right,int comparison_op,char *branch_target)
 {
   struct thing *l,*r;
@@ -1094,66 +1138,19 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		      printf(",y");
 		      if (r->derefidx->arg_thing) {
 			printf("\n");
-			if (!byte) {
-			  printf("clc\n");
-			  if (!r->derefidx->arg_thing->deref)
-			    printf("adc #{%s}",r->derefidx->arg_thing->name);
-			  else {
-			    printf("adc {%s}",r->derefidx->arg_thing->name);
-			    if (r->derefidx->arg_thing->derefidx) {
-			      if (r->derefidx->arg_thing->derefidx->reg_a) {
-				if (reg_a_in_y) printf(",y");
-				else printf("[ERROR: cannot resolve nested derefence]");
-			      } else if (r->derefidx->arg_thing->derefidx->reg_y) {
-				printf(",y");
-			      } else if (r->derefidx->arg_thing->derefidx->reg_x) {
-				printf(",x");
-			      } else {
-				printf("[ERROR: cannot resolve nested derefence]");				
-			      }
-			    }
-			  }
-			} else {
-			  if (byte<(valid_bytes)) {
-			    printf("adc {%s}+%d",r->derefidx->arg_thing->name,byte);
-			    if (r->derefidx->arg_thing->derefidx) {
-			      if (r->derefidx->arg_thing->derefidx->reg_a) {
-				if (reg_a_in_y) printf(",y");
-				else printf("[ERROR: cannot resolve nested derefence]");
-			      } else if (r->derefidx->arg_thing->derefidx->reg_y) {
-				printf(",y");
-			      } else if (r->derefidx->arg_thing->derefidx->reg_x) {
-				printf(",x");
-			      } else {
-				printf("[ERROR: cannot resolve nested derefence]");				
-			      }
-			    }
-			    
-			  } else 
-			    printf("adc #0");
-			}
+			expand_derefidx_arg(byte,r,reg_a_in_y,valid_bytes);
 		      }
 		    } else if (r->derefidx&&r->derefidx->reg_x) {
 		      printf(",x");
 		      if (r->derefidx->arg_thing) {
 			printf("\n");
-			if (!byte) {
-			  printf("clc\n");
-			  printf("adc #{%s}",r->derefidx->arg_thing->name);
-			} else {
-			  printf("adc #0");
-			}
+			expand_derefidx_arg(byte,r,reg_a_in_y,valid_bytes);
 		      }
 		    } else if (r->derefidx&&r->derefidx->reg_y) {
 		      printf(",y");
 		      if (r->derefidx->arg_thing) {
 			printf("\n");
-			if (!byte) {
-			  printf("clc\n");
-			  printf("adc #{%s}",r->derefidx->arg_thing->name);
-			} else {
-			  printf("adc #0");
-			}
+			expand_derefidx_arg(byte,r,reg_a_in_y,valid_bytes);
 		      }
 		    }
 		    else if (r->derefidx) {
@@ -1355,9 +1352,17 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			    printf("sta {%s},x",l->name);
 			  }
 			} else if (l->derefidx->reg_x) {
-			  printf("sta {%s},x",l->name);
+			  if (byte)
+			    printf("sta {%s}+%d,x\n",l->name,byte);
+			  else
+			    printf("sta {%s},x\n",l->name);
+			  override=1;
 			} else if (l->derefidx->reg_y) {
-			  printf("sta {%s},y",l->name);
+			  if (byte)
+			    printf("sta {%s}+%d,y\n",l->name,byte);
+			  else
+			    printf("sta {%s},y\n",l->name);
+			  override=1;
 			} else {
 			  printf("ERROR: Unsupported nested derefence form (line %d)\n",__LINE__);
 			}
