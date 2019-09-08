@@ -657,9 +657,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
     l->bytes=2;
   }
   // Yet another pointer inference kludge
-  if (((left[0]=='p')||!strncmp(left,"_ptr_",5))
+  if (((left[0]=='p')||!strncmp(left,"_ptr_",5)||!strncmp(left,"_dec_p",6)||!strncmp(left,"_inc_p",6))
       &&
-      ((right[0]=='p')||!strncmp(right,"_ptr_",5))
+      ((right[0]=='p')||!strncmp(right,"_ptr_",5)||!strncmp(right,"_dec_p",6)||!strncmp(right,"_inc_p",6))
       &&(!l->derefidx)
       &&(!r->derefidx)
       ) {
@@ -796,7 +796,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   }
 
   if (r->inc==1&&!strcmp(r->name,l->name)
-      &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes) {
+      &&r->deref==1&&l->deref==1&&r->bytes==1&&l->bytes
+      &&((!l->derefidx)||(!l->derefidx->reg_y))
+      &&((!r->derefidx)||(!r->derefidx->reg_y))
+      ) {
     
     // Short cut for INC
     switch(l->deref) {
@@ -813,13 +816,16 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  }
 	  if (l->derefidx->name) {
 	    printf("lda ({%s}),y\ntax\n",l->derefidx->name);
+	    printf("inc {%s},x\n",r->name);
 	  } else if (l->derefidx->reg_x) {
-	    // Nothing to do
+	    // Nothing to do apart from do the inc
+	    printf("inc {%s},x\n",r->name);
 	  } else {
-	    printf("ERROR: unsupported derefence\n");
+	    printf("ERROR: unsupported derefence (line %d)\n",__LINE__);
 	  }
-	}
-	printf("inc {%s},x\n",r->name);
+	} else
+	  printf("inc {%s},x\n",r->name);
+	  
       }
       break;
     default:
@@ -851,7 +857,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	} else if (l->derefidx->reg_x) {
 	  // Nothing to do
 	} else {
-	  printf("ERROR: unsupported derefence\n");
+	  printf("ERROR: unsupported derefence (line %d)\n",__LINE__);
 	}
       }
       printf("dec {%s},x\n",r->name);
@@ -1270,7 +1276,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    } else if (r->shift_thing->reg_x) {
 	      // Nothing to do
 	    } else {
-	      printf("ERROR: unsupported derefence\n");
+	      printf("ERROR: unsupported derefence (line %d)\n",__LINE__);
 	    }
 	    break;
 	  default:
