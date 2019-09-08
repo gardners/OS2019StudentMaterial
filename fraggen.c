@@ -464,11 +464,20 @@ void describe_thing(int depth,struct thing *t)
 }
 
 void expand_op(int byte,struct thing *r)
-{
+{  
   if (r->arg_thing) {
+    int literal_byte=0;
+    
+    
     char name[1024]="{ERROR: Could not resolve}";
-    if (r->arg_thing->name)
+    if (r->arg_thing->name) {
       snprintf(name,1024,"{%s}",r->arg_thing->name);
+      if (r->arg_thing->name[0]>='0'&&r->arg_thing->name[0]<='9')
+	{
+	  snprintf(name,1024,"%s",r->arg_thing->name);
+	  if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
+	}
+    }
     if (r->arg_thing->reg_a) {
       printf("ERROR: Reading arg from A register. Does this ever make sense?\n");
     }
@@ -523,7 +532,12 @@ void expand_op(int byte,struct thing *r)
       switch (r->arg_thing->deref) {
       case 0:
 	switch(byte) {
-	case 0: printf("adc #<%s\n",name); break;
+	case 0:
+	  if (!literal_byte)
+	    printf("adc #<%s\n",name);
+	  else
+	    printf("adc #%s\n",name);
+	  break;
 	case 1: printf("adc #>%s\n",name); break;
 	case 2: printf("adc #<%s>>16\n",name); break;
 	case 3: printf("adc #>%s>>16\n",name); break;
@@ -672,6 +686,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   
   //  describe_thing(0,l);
 
+  int shortcut_taken=0;
   int a_zero=0;
   int inner_deref_done=0;
   int simple_pointer_cast=0;
@@ -1030,14 +1045,30 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    } else if (r->deref==1) {
 	      if (shift_offset+byte>=0) {
 		if (!simple_pointer_cast) {
-		  printf("lda {%s}",r->name);
-		  if (byte+shift_offset) printf("+%d",byte+shift_offset);
-		  if (r->derefidx&&r->derefidx->reg_x) printf(",x");
-		  else if (r->derefidx&&r->derefidx->reg_y) printf(",y");
-		  else if (r->derefidx) {
-		    printf("[UNIMPLMENENTED DEREF]\n");
+
+		  // If adding a constant number that is one byte, then
+		  // short cut with incrementing the upper byte
+		  int literal_byte=0;
+		  if (r->arg_thing)
+		    if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
+		  
+		  if ((r->arg_op==OP_PLUS)&&(!strcmp(l->name,r->name))
+		      &&literal_byte&&byte) {
+		    printf("bcc !+\ninc {%s}+1\n!:\n",l->name);
+		    shortcut_taken=1;
+		  } else {
+		    printf("lda {%s}",r->name);
 		  }
-		  printf("\n");
+
+		  if (!shortcut_taken) {
+		    if (byte+shift_offset) printf("+%d",byte+shift_offset);
+		    if (r->derefidx&&r->derefidx->reg_x) printf(",x");
+		    else if (r->derefidx&&r->derefidx->reg_y) printf(",y");
+		    else if (r->derefidx) {
+		      printf("[UNIMPLMENENTED DEREF]\n");
+		    }
+		    printf("\n");
+		  }
 		}
 	      }
 	    } else if (r->deref==2) {
@@ -1064,36 +1095,38 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	  }
 	  
 	  // Implement addition/subtraction of constants other than 1 and -1
-	  if (r->inc) {
-	    int add=1;
-	    if (r->inc<0) add=0;
-	    if (r->bytes==1&&r->inc&0x80) add=0;
-	    if (r->bytes==2&&r->inc&0x8000) add=0;
-            if (add) {
-	      if (!byte) printf("clc\n");
-	      if (valid_bytes>1) {
-		switch(byte) {
-		case 0: printf("adc #<$%x\n",r->inc); break;
-		case 1: printf("adc #>$%x\n",r->inc); break;
-		case 2: printf("adc #<$%x>>16\n",r->inc); break;
-		case 3: printf("adc #>$%x>>16\n",r->inc); break;
+	  if (!shortcut_taken) {
+	    if (r->inc) {
+	      int add=1;
+	      if (r->inc<0) add=0;
+	      if (r->bytes==1&&r->inc&0x80) add=0;
+	      if (r->bytes==2&&r->inc&0x8000) add=0;
+	      if (add) {
+		if (!byte) printf("clc\n");
+		if (valid_bytes>1) {
+		  switch(byte) {
+		  case 0: printf("adc #<$%x\n",r->inc); break;
+		  case 1: printf("adc #>$%x\n",r->inc); break;
+		  case 2: printf("adc #<$%x>>16\n",r->inc); break;
+		  case 3: printf("adc #>$%x>>16\n",r->inc); break;
+		  }
+		} else {
+		  printf("adc #%d\n",r->inc);
 		}
 	      } else {
-		printf("adc #%d\n",r->inc);
-	      }
-	    } else {
-	      if (!byte) printf("sec\n");
-	      if (r->inc==-1) {
-		switch(byte) {
-		case 0: printf("sbc #1\n"); break;
-		default: printf("sbc #0\n"); break;
-		}
-	      } else {
-		switch(byte) {
-		case 0: printf("sbc #<%d\n",-r->inc); break;
-		case 1: printf("sbc #>%d\n",-r->inc); break;
-		case 2: printf("sbc #<%d>>16\n",-r->inc); break;
-		case 3: printf("sbc #>%d>>16\n",-r->inc); break;
+		if (!byte) printf("sec\n");
+		if (r->inc==-1) {
+		  switch(byte) {
+		  case 0: printf("sbc #1\n"); break;
+		  default: printf("sbc #0\n"); break;
+		  }
+		} else {
+		  switch(byte) {
+		  case 0: printf("sbc #<%d\n",-r->inc); break;
+		  case 1: printf("sbc #>%d\n",-r->inc); break;
+		  case 2: printf("sbc #<%d>>16\n",-r->inc); break;
+		  case 3: printf("sbc #>%d>>16\n",-r->inc); break;
+		  }
 		}
 	      }
 	    }
@@ -1135,7 +1168,14 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		}
 
 		// No need to do CMP if comparing with zero
-		if (strcmp(l->name,"0")) {
+		if (l->name[0]>='0'&&l->name[0]<='9'&&strcmp(l->name,"0")) {
+		  switch(byte) {
+		  case 0: printf("%s #<%s\n",opcode,l->name); break;
+		  case 1: printf("%s #>%s\n",opcode,l->name); break;
+		  case 2: printf("%s #<%s>>16\n",opcode,l->name); break;
+		  case 3: printf("%s #>%s>>16\n",opcode,l->name); break;
+		  }
+		} else if (strcmp(l->name,"0")) {
 		  switch(byte) {
 		  case 0: printf("%s #<{%s}\n",opcode,l->name); break;
 		  case 1: printf("%s #>{%s}\n",opcode,l->name); break;
@@ -1149,12 +1189,13 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if (!comparison_op) {
 		if (r->reg_x) printf("stx {%s}",l->name);
 		else if (r->reg_y) printf("sty {%s}",l->name);
-		else {
+		else if (!shortcut_taken) {
 		  int override=0;
 		  expand_op(byte,r);
 		  if (!simple_pointer_cast) {
 		    if (!l->derefidx) {
-		      if ((!r->name)||(!l->name)||strcmp(l->name,r->name)) {
+		      if ((!r->name)||(!l->name)||strcmp(l->name,r->name)||
+			  r->arg_thing) {
 			printf("sta {%s}",l->name);
 		      } else {
 			// Source and target the same, so we have to stash the first byte
