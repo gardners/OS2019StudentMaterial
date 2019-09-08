@@ -834,7 +834,11 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      skip_dey=0;
 	    }
 	  if (!byte) {
-	    if (shift_offset<0) printf("lda #0\n");
+	    if (shift_offset<0) {
+	      // No need for lda #0 when tya provides the value
+	      if (!(r->reg_a&&l->bytes>1)) 
+		printf("lda #0\n");
+	    }
 	  }
 	  
 	  if (byte<r->bytes) {
@@ -881,7 +885,11 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      exit(-1);
 	    }
 	  } else {
-	    if (byte==r->bytes) printf("lda #0\n");
+	    if (byte==r->bytes) {
+	      // No need for lda #0 when tya provides the value
+	      if (!(r->reg_a&&l->bytes>1)) 
+		printf("lda #0\n");
+	    }
 	  }
 	  
 	  // Implement addition/subtraction of constants other than 1 and -1
