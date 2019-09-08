@@ -399,8 +399,33 @@ struct thing *parse_thing(char *left)
   return t;
 }   
 
+void dump_mem(char *msg,void *m,int size)
+{
+  unsigned char *p=m;
+
+  printf("%s (%p):\n",msg,m);
+  for(int i=0;i<size;i+=16) {
+    printf("%08x : ",i);
+    for(int j=0;j<16;j++) {
+      if (i+j<size) printf("%02x ",p[i+j]); else printf("   ");
+    }
+    printf("  ");
+    for(int j=0;j<16;j++) {
+      if (i+j<size) {
+	if (p[i+j]>=0x20&&p[i+j]<0x7e)
+	  printf("%c",p[i+j]);
+	else
+	  printf(".");
+      } else printf(" ");
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 void describe_thing(int depth,struct thing *t)
 {
+  dump_mem("t",t,sizeof(*t));
   for(int i=0;i<depth;i++) printf(" ");
   if (t->reg_a) printf("reg_a");
   if (t->reg_x) printf("reg_x");
@@ -420,12 +445,16 @@ void describe_thing(int depth,struct thing *t)
     printf(" name=%s",t->name);
   }
   if (t->derefidx) {
-    printf("\n  deref:\n");
+    printf("\n  derefidx %p:\n",t->derefidx);
     describe_thing(depth+6,t->derefidx);
   }
   if (t->shift_thing) {
     printf("shift:\n");
     describe_thing(depth+6,t->shift_thing);
+  }
+  if (t->arg_thing) {
+    printf("\n  arith op:\n");
+    describe_thing(depth+6,t->arg_thing);
   }
   printf("\n");
 }
@@ -522,6 +551,15 @@ void expand_op(int byte,struct thing *r)
   
 }
 
+int deref2_uses_y(struct thing *r)
+{
+  if (r->derefidx&&r->derefidx->reg_y) return 1;
+  if (r->arg_thing&&r->arg_thing->reg_y) return 1;
+  if (r->arg_thing&&r->arg_thing->derefidx&&r->arg_thing->derefidx->reg_y) return 1;
+  return 0;
+ 
+}
+
 int generate_assignment(char *left, char *right,int comparison_op,char *branch_target)
 {
   struct thing *l,*r;
@@ -608,8 +646,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       } else {
 	// De-ref pointer without offset
 	// This means we can just use lda ($nn),y
-	if ((!l->derefidx||!l->derefidx->reg_y))
-	  printf("ldy #0\n");
+	// But save Y first if both sides need to use this addressing mode,
+	// and with different offsets
+	if ((!l->derefidx||!l->derefidx->reg_y)) {
+	  if (deref2_uses_y(r)) printf("sty $ff\n");
+	  else printf("ldy #0\n");
+	}
 	if (l->early_deref) {
 	  if (r->reg_a) {
 	    printf("ldx {%s}\n",l->name);
@@ -715,6 +757,9 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      // the zero value currently in Y
 	      if (r->reg_a&&l->bytes>1) printf("tya\n");
 
+	      if ((!l->derefidx||!l->derefidx->reg_y)) {
+		if (deref2_uses_y(r)) printf("ldy $ff\n");
+	      }
 	      printf("iny\n");
 	    }
 	  if (!byte) {
@@ -840,6 +885,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if (byte) printf("+%d",byte);
 	      printf("\n");
 	    } else if (l->deref==2) {
+
+	      // Reset Y if required
+	      if ((!l->derefidx||!l->derefidx->reg_y)) {
+		if (deref2_uses_y(r)) printf("ldy #%d\n",byte);
+	      }
+
 	      expand_op(byte,r);
 
 	      if (!l->derefidx||l->early_deref)  {
