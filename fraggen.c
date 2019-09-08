@@ -429,6 +429,7 @@ void dump_mem(char *msg,void *m,int size)
 
 void describe_thing(int depth,struct thing *t)
 {
+  printf("thing = %p\n",t);
   //  dump_mem("t",t,sizeof(*t));
   for(int i=0;i<depth;i++) printf(" ");
   if (t->reg_a) printf("reg_a");
@@ -457,7 +458,7 @@ void describe_thing(int depth,struct thing *t)
     describe_thing(depth+6,t->shift_thing);
   }
   if (t->arg_thing) {
-    printf("\n  arith op:\n");
+    printf("\n  arith op: %p\n",t->arg_thing);
     describe_thing(depth+6,t->arg_thing);
   }
   printf("\n");
@@ -465,10 +466,12 @@ void describe_thing(int depth,struct thing *t)
 
 void expand_op(int byte,struct thing *r)
 {  
+  //  describe_thing(0,r);
+  //  printf("r=%p\n",r);
+  //  printf("r->arg_thing=%p\n",r->arg_thing);
   if (r->arg_thing) {
     int literal_byte=0;
-    
-    
+
     char name[1024]="{ERROR: Could not resolve}";
     if (r->arg_thing->name) {
       snprintf(name,1024,"{%s}",r->arg_thing->name);
@@ -541,7 +544,10 @@ void expand_op(int byte,struct thing *r)
 	  else
 	    printf("adc #%s\n",name);
 	  break;
-	case 1: printf("adc #>%s\n",name); break;
+	case 1:
+	  if (literal_byte) printf("adc #0\n");
+	  else printf("adc #>%s\n",name);
+	  break;
 	case 2: printf("adc #<%s>>16\n",name); break;
 	case 3: printf("adc #>%s>>16\n",name); break;
 	}
@@ -697,6 +703,17 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   int skip_dey=1;
   int byte=0;
   int reverse_order=0;
+  int literal_byte=0;
+
+  // If adding a constant number that is one byte, then
+  // short cut with incrementing the upper byte or other little tricks
+  if (r->arg_thing&&r->arg_thing->name) {
+    if (r->arg_thing->name[0]>='0'&&r->arg_thing->name[0]<='9') 
+      if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
+    if ((r->arg_thing->name[0]=='c')&&r->arg_thing->bytes==1)
+      literal_byte=1;
+  } 
+  
   if ((!l->sign)&&comparison_op) {
     //    printf("unsigned comparison -- consider reversing order\n");
     switch(comparison_op) {
@@ -1048,21 +1065,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	    } else if (r->deref==1) {
 	      if (shift_offset+byte>=0) {
 		if (!simple_pointer_cast) {
-
-		  // If adding a constant number that is one byte, then
-		  // short cut with incrementing the upper byte
-		  int literal_byte=0;
-		  if (r->arg_thing&&r->arg_thing->name) {
-		    if (r->arg_thing->name[0]>='0'&&r->arg_thing->name[0]<='9') 
-		      if (atoi(r->arg_thing->name)<0x100) literal_byte=1;
-		    if ((r->arg_thing->name[0]=='c')&&r->arg_thing->bytes==1)
-		      literal_byte=1;
-		  }
-
 		  
 		  if ((r->arg_op==OP_PLUS)&&(!strcmp(l->name,r->name))
 		      &&literal_byte&&byte) {
-		    printf("bcc !+\ninc {%s}+1\n!:\n",l->name);
+		    printf("inc {%s}+1\n!:\n",l->name);
 		    shortcut_taken=1;
 		  } else {
 		    printf("lda {%s}",r->name);
@@ -1199,6 +1205,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		else if (r->reg_y) printf("sty {%s}",l->name);
 		else if (!shortcut_taken) {
 		  int override=0;
+		  //		  describe_thing(0,r);
 		  expand_op(byte,r);
 		  if (!simple_pointer_cast) {
 		    if (!l->derefidx) {
@@ -1270,6 +1277,12 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		    if (!override) {
 		      if (byte) printf("+%d",byte);
 		      printf("\n");
+		    }
+		    if (r->arg_op==OP_PLUS) {
+		      if (literal_byte&&(!shortcut_taken)) {
+			if (!byte) printf("bcc !+\n");
+			if (byte==(valid_bytes-1)) printf("!:\n");
+		      }
 		    }
 		  }
 		}
