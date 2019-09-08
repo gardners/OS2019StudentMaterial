@@ -474,9 +474,10 @@ void describe_thing(int depth,struct thing *t)
   printf("\n");
 }
 
-void expand_op(int byte,struct thing *r)
+void expand_op(int byte,struct thing *r,char *name_in_y)
 {
   //  printf("expand_op %p\n",r);
+  char *suffix="";
   
 #if 0
   describe_thing(0,r);
@@ -492,6 +493,10 @@ void expand_op(int byte,struct thing *r)
   if (r->arg_thing) {
     int literal_byte=0;
 
+    if (r->arg_thing->derefidx&&r->arg_thing->derefidx->name
+	&&(!strcmp(name_in_y,r->arg_thing->derefidx->name)))
+      suffix=",y";
+      
     char name[1024]="{ERROR: Could not resolve}";
     if (r->arg_thing->name) {
       snprintf(name,1024,"{%s}",r->arg_thing->name);
@@ -574,10 +579,10 @@ void expand_op(int byte,struct thing *r)
 	break;
       case 1:
 	switch(byte) {
-	case 0: printf("adc %s\n",name); break;
-	case 1: printf("adc %s+1\n",name); break;
-	case 2: printf("adc %s+2\n",name); break;
-	case 3: printf("adc %s+3\n",name); break;
+	case 0: printf("adc %s%s\n",name,suffix); break;
+	case 1: printf("adc %s+1%s\n",name,suffix); break;
+	case 2: printf("adc %s+2%s\n",name,suffix); break;
+	case 3: printf("adc %s+3%s\n",name,suffix); break;
 	}
 	break;
       case 2:
@@ -1308,7 +1313,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		else if (!shortcut_taken) {
 		  int override=0;
 		  // describe_thing(0,r);
-		  expand_op(byte,r);
+		  expand_op(byte,r,name_in_y);
 		  if (!simple_pointer_cast) {
 		    if (!l->derefidx) {
 		      if ((!r->name)||(!l->name)||strcmp(l->name,r->name)||
@@ -1459,7 +1464,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		}
 	      }
 
-	      expand_op(byte,r);
+	      expand_op(byte,r,name_in_y);
 	      
 	      if (!comparison_op) {
 		
