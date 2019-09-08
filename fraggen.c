@@ -1149,7 +1149,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		  expand_op(byte,r);
 		  if (!simple_pointer_cast) {
 		    if (!l->derefidx) {
-		      if (strcmp(l->name,r->name)) {
+		      if ((!r->name)||(!l->name)||strcmp(l->name,r->name)) {
 			printf("sta {%s}",l->name);
 		      } else {
 			// Source and target the same, so we have to stash the first byte
