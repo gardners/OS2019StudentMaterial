@@ -184,6 +184,7 @@ void parse_thing_common(char *left,struct thing *t)
     t->sign=0; t->bytes=99; break;
   case 's': t->sign=1; break;
   case 'u': t->sign=0; break;
+  case 'o': t->sign=0; break; // void pointer
   case 'r': t->sign=0; break; // pointer to a function
   default:
     fprintf(stderr,"Can't parse signedness description '%c'\n",left[2]);
