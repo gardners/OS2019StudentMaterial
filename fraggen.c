@@ -722,7 +722,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	if (r->reg_a) {
 	  // Avoid using A, since we want to use it
 	  if (!l->derefidx->reg_y)
-	    printf("ldy {%s}\n",l->derefidx->name);
+	    printf("ldy {%s}\n",l->derefidx->name);	  
 	  printf("ldx {%s},y\n",l->name);
 	  // Use self-modifying code to re-write pointer directly into
 	  // target instruction
@@ -1049,8 +1049,21 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			  printf("ldy {%s},x\n",l->derefidx->name);
 			  printf("sta {%s},y",l->name);
 			} else if (l->derefidx->derefidx->reg_y) {
-			  printf("ldx {%s},y\n",l->derefidx->name);
-			  printf("sta {%s},x",l->name);
+			  switch (l->derefidx->deref) {
+			  case 1:
+			    printf("ldx {%s},y\n",l->derefidx->name);
+			    printf("sta {%s},x",l->name);
+			    break;
+			  case 2:
+			    if (r->reg_a) printf("pha\n");
+			    printf("lda ({%s}),y\n",l->derefidx->name);
+			    printf("tay\n");
+			    if (r->reg_a) printf("pla\n");
+			    printf("sta {%s},y",l->name);
+			    break;
+			  default:
+			    printf("ERROR: Unsupported nested derefence\n");
+			  }
 			} else {
 			  printf("ERROR: Unsupported nested derefence form\n");
 			}
