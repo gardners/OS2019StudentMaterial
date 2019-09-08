@@ -775,6 +775,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
   
   //  describe_thing(0,l);
 
+  int y_incremented=0;
   int shortcut_taken=0;
   int a_zero=0;
   int reg_a_in_y=0;
@@ -1117,7 +1118,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 	      if ((!l->derefidx||!l->derefidx->reg_y)) {
 		if (deref2_uses_y(r)) printf("ldy $ff\n");
 	      }
-	      if (!reverse_order) printf("iny\n");
+	      if (!reverse_order) { printf("iny\n"); y_incremented=1; }
 	    }
 	  if (rbyte) 
 	    if (l->deref>1||r->deref>1) {
@@ -1405,7 +1406,7 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 			    printf("sta {%s},x\n",l->name);
 			  override=1;
 			} else if (l->derefidx->reg_y) {
-			  if (byte&&(!r->derefidx->reg_y))
+			  if (byte&&(!y_incremented))
 			    printf("sta {%s}+%d,y\n",l->name,byte);
 			  else
 			    printf("sta {%s},y\n",l->name);
@@ -1428,8 +1429,10 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
 		    }
 		    if (r->arg_op==OP_PLUS) {
 		      if (literal_byte&&(!shortcut_taken)) {
-			if (!byte) printf("bcc !+\n");
-			if (byte==(valid_bytes-1)) printf("!:\n");
+			if (!strcmp(l->name,r->name)) {
+			  if (!byte) printf("bcc !+\n");
+			  if (byte==(valid_bytes-1)) printf("!:\n");
+			}
 		      }
 		    }
 		  }
