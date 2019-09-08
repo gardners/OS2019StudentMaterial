@@ -834,7 +834,8 @@ int generate_assignment(char *left, char *right,int comparison_op,char *branch_t
       if (r->deref) printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
       break;
     case 1:
-      printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
+      if (l->derefidx&&!l->derefidx->reg_y)
+	printf("ldy #%d\n",reverse_order?(valid_bytes-1):0);
       break;
     case 2:
       if (l->derefidx&&!l->early_deref) {
