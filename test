@@ -5,8 +5,11 @@ gcc -g -Wall -o fraggen fraggen.c
 set fails=0
 set matches=0
 
+set n=0
+
 foreach frag ( `ls -1 kickc/fragment/*.asm | sed -e  's,^.*/,,g' -e 's/.asm$//g'` )
-  echo -n $frag " : "
+  echo -n $n $frag " : "
+  @ n = $n + 1
   ./fraggen $frag > myfrag
   sort < myfrag > s1
   sort < kickc/fragment/${frag}.asm > s2
