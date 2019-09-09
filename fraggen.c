@@ -532,13 +532,13 @@ void expand_op(int byte,struct thing *r,char *name_in_y,int reg_a_in_y)
     }
     if (r->arg_thing->reg_x) {
       //      printf("ERROR: Reading arg from X register.\n");
-      printf("stx $f0\n");
-      snprintf(name,1024,"$f0");
+      printf("stx $ff\n");
+      snprintf(name,1024,"$ff");
     }
     if (r->arg_thing->reg_y) {
       //      printf("ERROR: Reading arg from Y register.\n");
-      printf("sty $f0\n");
-      snprintf(name,1024,"$f0");
+      printf("sty $ff\n");
+      snprintf(name,1024,"$ff");
     }
     //    if (r->arg_thing->bytes>1) {
     //  printf("ERROR: We don't (yet) support >1 bytes here.\n");
