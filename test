@@ -2,25 +2,27 @@
 
 gcc -g -Wall -o fraggen fraggen.c
 
+set cpu=mos6502-common
+
 set fails=0
 set matches=0
 
 set n=0
 
-foreach frag ( `ls -1 kickc/fragment/*.asm | sed -e  's,^.*/,,g' -e 's/.asm$//g'` )
+foreach frag ( `ls -1 kickc/fragment/${cpu}/*.asm | sed -e  's,^.*/,,g' -e 's/.asm$//g'` )
   echo -n $n $frag " : "
   @ n = $n + 1
   ./fraggen $frag > myfrag
   sort < myfrag > s1
-  sort < kickc/fragment/${frag}.asm > s2
+  sort < kickc/fragment/${cpu}/${frag}.asm > s2
   set sdiffs=`diff -w s1 s2 | wc -l`
-  set diffs=`diff -w myfrag kickc/fragment/${frag}.asm | wc -l`
+  set diffs=`diff -w myfrag kickc/fragment/${cpu}/${frag}.asm | wc -l`
 #  echo "diff: ${diffs} ${sdiffs}"
   if ( $diffs != 0 ) then
     if ( $sdiffs != 0 ) then
       echo "Fail"
       @ fails++
-      diff -w myfrag kickc/fragment/${frag}.asm
+      diff -w myfrag kickc/fragment/${cpu}/${frag}.asm
     else
       echo "Instruction order differs"
       @ matches++
