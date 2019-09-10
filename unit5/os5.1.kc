@@ -1,0 +1,149 @@
+// XMega65 Kernal Development Template
+// Each function of the kernal is a no-args function
+// The functions are placed in the SYSCALLS table surrounded by JMP and NOP
+
+#pragma cpu(rom6502)
+
+import "string"
+
+#pragma link("mega65hyper.ld")
+
+
+const char* RASTER = 0xd012;
+const char* VIC_MEMORY = 0xd018;
+const char* SCREEN = 0x0400;
+const char* BGCOL = 0xd021;
+const char* COLS = 0xd800;
+const char BLACK = 0;
+const char BLUE = 6;
+const char WHITE = 1;
+
+char[] MESSAGE = "checkpoint 5.1 gard0050";
+
+const unsigned char STATE_NOTRUNNING = $00;
+const unsigned char STATE_RUNNING = $01;
+
+// Process Descriptor Block definition
+struct process_descriptor_block {
+  // Unique identifier for the process
+  XXX - You need to add something here
+
+  // Current state of the process
+  XXX - You need to add something here
+
+  // Human readable name of the process
+  XXX - You need to add something here
+  
+  // Where this process is stored when not running
+  // i.e., where in the $20000-$5FFFF memory range the
+  // process is stored when not running.
+  XXX - You need to add something here
+  XXX - You need to add something here
+ 
+  // Stored registers and related machine state for this
+  // process (for the $D640-$D67E machine state registers)
+  XXX - You need to add something here
+  
+};
+
+// Process stored state will live at $C000-$C7FF, with 256 bytes
+// for each process reserved
+const unsigned char *stored_pdbs = $C000;
+// 8 processes x 16 bytes = 128 bytes for names
+const char *process_names = $C800;
+// 8 processes x 64 bytes context state = 512 bytes
+const unsigned char *process_context_states = $C900;
+
+
+unsigned char *current_screen_line = SCREEN;
+unsigned char current_screen_x = 0;
+
+void print_char(char c)
+{
+   current_screen_line[current_screen_x++]=c;
+}
+
+void print_to_screen(char *message)
+{
+  char *c=message;
+  while(*c) {
+    current_screen_line[current_screen_x++]=*c;
+    c++;
+  }
+}
+
+void print_newline()
+{
+  current_screen_line+=40;
+  current_screen_x=0;
+}
+
+
+void print_hex(unsigned word value)
+{
+  char[5] hex;
+  unsigned char i;
+  for(i=0;i<8;i++) {
+    if (value<0xa000) hex[i]='0'+(char)(value>>12);
+    else hex[i]=(char)(value>>12)-9;
+    value<<=4;
+  }
+  hex[4]=0;
+  print_to_screen(hex);
+}
+
+void print_dhex(unsigned dword value)
+{
+  print_hex((word)(value>>16));
+  print_hex((unsigned word)value);
+}
+
+void describe_pdb(unsigned char pdb_number)
+{
+  unsigned char i;
+  struct process_descriptor_block *p
+    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((short)pdb_number)<<8));
+
+  print_to_screen("pdb#");
+  print_hex((word)pdb_number);
+  print_to_screen(":");
+  print_newline();
+
+  print_to_screen("  pid:          ");
+  print_hex((word)p->process_id);
+  print_newline();
+
+  print_to_screen("  process name: ");
+  char *n=p->process_name;
+  for(i=0;n[i]&&(i<17);i++) {
+    print_char(n[i]);
+  }
+  print_newline();
+
+  print_to_screen("  mem start:    $");
+  print_dhex(p->storage_start_address);
+  print_newline();
+
+  print_to_screen("  mem end:      $");
+  print_dhex(p->storage_end_address);
+  print_newline();
+
+  print_to_screen("  pc:           $");
+  unsigned short *ss=p->stored_state;
+  print_hex(ss[4]);
+  print_newline();
+
+
+}
+
+XXX - Copy in your syscalls, RESET() function and entry point tables from
+      checkpoint3.1
+
+XXX - Now add the following lines to your RESET() function just before the
+      "// Loop forever with 2 bars"
+    print_newline();
+    print_newline();
+    print_newline();
+
+    describe_pdb(0);
+
