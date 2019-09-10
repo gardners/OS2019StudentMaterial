@@ -17,3 +17,28 @@ test5.1:	os5.1.bin packed.bin
 
 os5.1.bin:	os5.1.kc
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+test5.2:	os5.2.bin packed.bin
+	xmega65 -loadrom packed.bin -kickup os5.2.bin
+
+os5.2.bin:	os5.2.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+test5.3:	os5.3.bin packed.bin
+	xmega65 -loadrom packed.bin -kickup os5.3.bin
+
+os5.3.bin:	os5.3.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+test5.4:	os5.4.bin packed.bin
+	xmega65 -loadrom packed.bin -kickup os5.4.bin
+
+os5.4.bin:	os5.4.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+test5.5:	os5.5.bin packed.bin
+	xmega65 -loadrom packed.bin -kickup os5.5.bin
+
+os5.5.bin:	os5.5.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
