@@ -333,6 +333,10 @@ struct thing *parse_thing(char *left)
     // Cast to pointer
     left+=strlen("_word_");
   }
+  while(!strncmp(left,"_dword_",6)) {
+    // Cast to pointer
+    left+=strlen("_dword_");
+  }
   while(!strncmp(left,"_deref_",7)) {
     if (debug_deref) printf("_deref_\n");
     t->deref++;
