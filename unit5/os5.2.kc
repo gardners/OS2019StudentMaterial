@@ -1,0 +1,218 @@
+// XMega65 Kernal Development Template
+// Each function of the kernal is a no-args function
+// The functions are placed in the SYSCALLS table surrounded by JMP and NOP
+
+#pragma cpu(rom6502)
+
+import "string"
+
+#pragma link("mega65hyper.ld")
+
+
+const char* RASTER = 0xd012;
+const char* VIC_MEMORY = 0xd018;
+const char* SCREEN = 0x0400;
+const char* BGCOL = 0xd021;
+const char* COLS = 0xd800;
+const char BLACK = 0;
+const char BLUE = 6;
+const char WHITE = 1;
+
+char[] MESSAGE = "checkpoint 5.1 gard0050";
+
+const unsigned char STATE_NOTRUNNING = $00;
+const unsigned char STATE_RUNNING = $01;
+
+// Process Descriptor Block definition
+struct process_descriptor_block {
+ XXX - Copy in your content from os5.1.kc 
+};
+
+// Process stored state will live at $C000-$C7FF, with 256 bytes
+// for each process reserved
+const unsigned char *stored_pdbs = $C000;
+// 8 processes x 16 bytes = 128 bytes for names
+const char *process_names = $C800;
+// 8 processes x 64 bytes context state = 512 bytes
+const unsigned char *process_context_states = $C900;
+
+
+unsigned char *current_screen_line = SCREEN;
+unsigned char current_screen_x = 0;
+
+void print_char(char c)
+{
+   current_screen_line[current_screen_x++]=c;
+}
+
+void print_to_screen(char *message)
+{
+  char *c=message;
+  while(*c) {
+    current_screen_line[current_screen_x++]=*c;
+    c++;
+  }
+}
+
+void print_newline()
+{
+  current_screen_line+=40;
+  current_screen_x=0;
+}
+
+
+void print_hex(unsigned word value)
+{
+  char[5] hex;
+  unsigned char i;
+  for(i=0;i<8;i++) {
+    if (value<0xa000) hex[i]='0'+(char)(value>>12);
+    else hex[i]=(char)(value>>12)-9;
+    value<<=4;
+  }
+  hex[4]=0;
+  print_to_screen(hex);
+}
+
+void print_dhex(unsigned dword value)
+{
+  print_hex((word)(value>>16));
+  print_hex((unsigned word)value);
+}
+
+void describe_pdb(unsigned char pdb_number)
+{
+  unsigned char i;
+  struct process_descriptor_block *p
+    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((short)pdb_number)<<8));
+
+  print_to_screen("pdb#");
+  print_hex((word)pdb_number);
+  print_to_screen(":");
+  print_newline();
+
+  print_to_screen("  pid:          ");
+  print_hex((word)p->process_id);
+  print_newline();
+
+  print_to_screen("  process name: ");
+  char *n=p->process_name;
+  for(i=0;n[i]&&(i<17);i++) {
+    print_char(n[i]);
+  }
+  print_newline();
+
+  print_to_screen("  mem start:    $");
+  print_dhex(p->storage_start_address);
+  print_newline();
+
+  print_to_screen("  mem end:      $");
+  print_dhex(p->storage_end_address);
+  print_newline();
+
+  print_to_screen("  pc:           $");
+  unsigned short *ss=p->stored_state;
+  print_hex(ss[4]);
+  print_newline();
+
+
+}
+
+// Setup a new process descriptor block
+void initialise_pdb(unsigned char pdb_number,char *name)
+{
+  unsigned char i;
+
+  struct process_descriptor_block *p
+    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((short)pdb_number)<<8));
+
+  // Setup process ID
+  XXX - Call the function next_free_pid() to get a process ID for the
+  process in this PDB, and store it in p->process_id
+
+  // Setup process name 
+  // (32 bytes space for each to fit 16 chars + nul)
+  // (we could just use 17 bytes, but kickc can't multiply by 17)
+  p->process_name=process_names+(((short)i)<<5);
+  XXX - copy the string in the array 'name' into the array 'p->process_name'
+  (The arrays are both 17 bytes long)
+
+  // Set process state as not running.
+  XXX - Put the value STATE_NOTRUNNING into p->process_state
+
+  // Set stored memory area
+  // (for now, we just use fixed 8KB steps from $30000-$3FFFF
+  // corresponding to the PDB number
+  XXX - Set p->storage_start_address to the correct start address
+  for a process that is in this PDB.
+  The correct address is $30000 + (pdb_number*$2000);
+
+
+  XXX - Then do the same for the end address of the process
+  This gets stored into p->process_end_address and the correct
+  address is $31FFF + (pdb_number*$2000);
+
+  // Initialise processor state for standard entry at $080D
+  // Everything to zero, except for a few things we will set manually
+
+  // 64 bytes context switching state for each process
+  p->stored_state=process_context_states+(((short)i)<<6);
+  unsigned char *ss=p->stored_state;
+
+  XXX - Set all 64 bytes of the array 'ss' to zero, to clear the context
+  switching state
+  for(i=0;i<63;i++) ss[i] = $00;
+
+  // Set tandard CPU flags (8-bit stack, interrupts disabled)
+  ss[7] = $24;
+
+  XXX - Set the stack pointer to $01FF
+  (This requires a bit of fiddly pointer arithmetic, so to save you 
+  the trouble working it out, you can use the following as the left 
+  side of the expression:   *(unsigned short *)&ss[x] = ...
+  where x is the offset of the stack pointer low byte (SPL) in the
+  Hypervisor saved state registers in Appendix D of the MEGA65 User's
+  Guide. i.e., if it were at $D640, x would be replaced with 0, and
+  if it were at $D641, x would be replaced with 1, and so on.
+  XXX - Note that the MEGA65 User's Guide has been updated on FLO.
+  You will required the latest version, as otherwise SPL is not listed.
+
+  XXX - Set the program counter to $080D
+  (This requires a bit of fiddly pointer arithmetic, so to save you 
+  the trouble working it out, you can use the following as the left 
+  side of the expression:   *(unsigned short *)&ss[x] = ...
+  where x is the offset of the program counter low byte (PCL) in the
+  Hypervisor saved state registers in Appendix D of the MEGA65 User's
+  Guide.
+
+
+  return;
+}
+
+
+void main() {
+
+}
+
+void exit_hypervisor()
+{
+	// Exit hypervisor
+	*(char *)$D67F = $01;
+}
+
+XXX - Add syscall handler functions here
+
+XXX - Add your RESET() function here
+
+
+XXX - Add the following line inside your RESET() function just
+      before the "//Loop forever with 2 bars" line
+    print_newline();
+    print_newline();
+    print_newline();
+
+    initialise_pdb(0,"program1.prg");
+    describe_pdb(0);
+
+
+XXX - Add the missing system traps and entry point tables here
