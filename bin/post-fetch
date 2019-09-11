@@ -12,10 +12,10 @@ if [ ! -e ${HOME}/repo/unit5/osabi.kc ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit5/osabi.kc ${HOME}/repo/unit5/
 fi
 if [ ! -e ${HOME}/repo/unit5/os5.1.kc ]; then
-	cp ${HOME}/OS2019StudentMaterial/unit5/os5.3.kc ${HOME}/repo/unit5/
+	cp ${HOME}/OS2019StudentMaterial/unit5/os5.1.kc ${HOME}/repo/unit5/
 fi
 if [ ! -e ${HOME}/repo/unit5/os5.2.kc ]; then
-	cp ${HOME}/OS2019StudentMaterial/unit5/os5.3.kc ${HOME}/repo/unit5/
+	cp ${HOME}/OS2019StudentMaterial/unit5/os5.2.kc ${HOME}/repo/unit5/
 fi
 if [ ! -e ${HOME}/repo/unit5/os5.3.kc ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit5/os5.3.kc ${HOME}/repo/unit5/
