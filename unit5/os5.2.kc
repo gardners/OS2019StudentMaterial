@@ -84,7 +84,7 @@ void describe_pdb(unsigned char pdb_number)
 {
   unsigned char i;
   struct process_descriptor_block *p
-    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((short)pdb_number)<<8));
+    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((unsigned short)pdb_number)<<8));
 
   print_to_screen("pdb#");
   print_hex((word)pdb_number);
@@ -124,7 +124,7 @@ void initialise_pdb(unsigned char pdb_number,char *name)
   unsigned char i;
 
   struct process_descriptor_block *p
-    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((short)pdb_number)<<8));
+    =(struct process_descriptor_block *)(((unsigned short)stored_pdbs)+(((unsigned short)pdb_number)<<8));
 
   // Setup process ID
   XXX - Call the function next_free_pid() to get a process ID for the

@@ -283,7 +283,7 @@ unsigned char load_program(unsigned char pdb_number)
 
   struct process_descriptor_block *pdb
     =(struct process_descriptor_block*)
-    ((unsigned short)stored_pdbs+(pdb_number<<8));
+    ((unsigned short)stored_pdbs+(((unsigned short)pdb_number)<<8));
 
 
 
