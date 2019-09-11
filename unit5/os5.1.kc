@@ -55,8 +55,8 @@ const char *process_names = $C800;
 const unsigned char *process_context_states = $C900;
 
 
-unsigned char *current_screen_line = SCREEN;
-unsigned char current_screen_x = 0;
+volatile unsigned char *current_screen_line = SCREEN;
+volatile unsigned char current_screen_x = 0;
 
 void print_char(char c)
 {
@@ -141,6 +141,7 @@ XXX - Copy in your syscalls, RESET() function and entry point tables from
 
 XXX - Now add the following lines to your RESET() function just before the
       "// Loop forever with 2 bars"
+    current_screen_line = SCREEN;
     print_newline();
     print_newline();
     print_newline();
