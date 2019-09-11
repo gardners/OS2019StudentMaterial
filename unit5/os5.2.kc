@@ -135,7 +135,10 @@ void initialise_pdb(unsigned char pdb_number,char *name)
   // (we could just use 17 bytes, but kickc can't multiply by 17)
   p->process_name=process_names+(((short)i)<<5);
   XXX - copy the string in the array 'name' into the array 'p->process_name'
-  (The arrays are both 17 bytes long)
+  XXX - To make your life easier, do something like char *pn=p->process_name
+        Then you can just do something along the lines of pn[...]=name[...] 
+        in a loop to copy the name into place.
+        (The arrays are both 17 bytes long)
 
   // Set process state as not running.
   XXX - Put the value STATE_NOTRUNNING into p->process_state
@@ -145,12 +148,12 @@ void initialise_pdb(unsigned char pdb_number,char *name)
   // corresponding to the PDB number
   XXX - Set p->storage_start_address to the correct start address
   for a process that is in this PDB.
-  The correct address is $30000 + (pdb_number*$2000);
+  The correct address is $30000 + (((unsigned dword)pdb_number)*$2000);
 
 
   XXX - Then do the same for the end address of the process
   This gets stored into p->process_end_address and the correct
-  address is $31FFF + (pdb_number*$2000);
+  address is $31FFF + (((unsigned dword)pdb_number)*$2000);
 
   // Initialise processor state for standard entry at $080D
   // Everything to zero, except for a few things we will set manually
