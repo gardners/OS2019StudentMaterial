@@ -2,6 +2,14 @@ import "osabi"
 
 void main()
 {
-	process_info();
-	end_program();
+	showpid();
+	yield();
+	showpid();
+	yield();
+	showpid();
+	yield();
+	showpid();
+	yield();
+
+	while(true) continue;
 }
