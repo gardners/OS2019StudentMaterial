@@ -335,9 +335,6 @@ unsigned char load_program(unsigned char pdb_number)
     new_address|=((dword)(lpeek(address+19)))<<8;
     new_address|=((dword)(lpeek(address+20)))<<16;
 
-    print_to_screen("next at $");
-    print_dhex((unsigned dword)new_address);
-
     address=new_address;
 
   }

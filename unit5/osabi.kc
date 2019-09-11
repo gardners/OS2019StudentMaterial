@@ -18,4 +18,8 @@ void end_program()
 	asm { nop }
 }
 
+void yield()
+{
+  // XXX - Implement this ABI
+}
 
