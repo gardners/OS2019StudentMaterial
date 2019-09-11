@@ -159,7 +159,7 @@ void initialise_pdb(unsigned char pdb_number,char *name)
   // Everything to zero, except for a few things we will set manually
 
   // 64 bytes context switching state for each process
-  p->stored_state=process_context_states+(((short)i)<<6);
+  p->stored_state=process_context_states+(((unsigned short)pdb_number)<<6);
   unsigned char *ss=p->stored_state;
 
   XXX - Set all 64 bytes of the array 'ss' to zero, to clear the context
