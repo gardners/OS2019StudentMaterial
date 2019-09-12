@@ -20,3 +20,15 @@ fi
 if [ ! -e ${HOME}/repo/unit5/os5.3.kc ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit5/os5.3.kc ${HOME}/repo/unit5/
 fi
+if [ ! -e ${HOME}/repo/unit5/program1.kc ]; then
+	cp ${HOME}/OS2019StudentMaterial/unit5/program1.kc ${HOME}/repo/unit5/
+fi
+if [ ! -e ${HOME}/repo/unit5/program2.kc ]; then
+	cp ${HOME}/OS2019StudentMaterial/unit5/program2.kc ${HOME}/repo/unit5/
+fi
+if [ ! -e ${HOME}/repo/unit5/program3.kc ]; then
+	cp ${HOME}/OS2019StudentMaterial/unit5/program3.kc ${HOME}/repo/unit5/
+fi
+if [ ! -e ${HOME}/repo/unit5/program4.kc ]; then
+	cp ${HOME}/OS2019StudentMaterial/unit5/program4.kc ${HOME}/repo/unit5/
+fi
