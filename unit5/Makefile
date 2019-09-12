@@ -6,7 +6,16 @@ pad:	pad.c
 pack:	pack.c
 	gcc -Wall -o pack pack.c
 
-%.prg:	%.kc myabi.kc
+program1.prg:	program1.kc myabi.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+program2.prg:	program2.kc myabi.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+program3.prg:	program3.kc myabi.kc
+	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
+
+program4.prg:	program4.kc myabi.kc
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
 
 packed.bin:	program1.prg program2.prg program3.prg program4.prg pack
