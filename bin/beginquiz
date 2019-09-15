@@ -6,6 +6,6 @@ if [ "x$1" == "x" ]; then
   exit
 fi
 cd quiz
-date | touch ${1}.start
+date | tee ${1}.start
 git pull --rebase
 git add ${1}.start ; git commit -m 'begin quiz ${1}' ${1}.start && git push origin && echo "Close the lid of your laptop and begin answering the quiz. You have one hour, unless you have a disability action plan that allows more time."
