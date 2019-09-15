@@ -1,3 +1,4 @@
 apt-get install -y pastebinit xemacs21
 cp  /home/student/OS2019StudentMaterial/bin/checkpoint /usr/local/bin/checkpoint
-chmod 755 /usr/local/bin/checkpoint
+cp  /home/student/OS2019StudentMaterial/bin/beginquiz /usr/local/bin/beginquiz
+chmod 755 /usr/local/bin/checkpoint /usr/local/bin/beginquiz
