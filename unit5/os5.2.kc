@@ -37,8 +37,33 @@ const char *process_names = $C800;
 const unsigned char *process_context_states = $C900;
 
 
+
 volatile unsigned char *current_screen_line = SCREEN;
 volatile unsigned char current_screen_x = 0;
+
+unsigned char next_free_pid()
+{
+  unsigned short i;
+
+  // Start with the next process ID
+  unsigned char pid=++pid_counter;
+
+  // then make sure that it isn't currently in use by another process
+  // This loop must terminate according to the Pigeon Hole Principlle,
+  // i.e., there are more possible PIDs than there are processes, so
+  // iterating through them will find at least one.
+  unsigned char stepped=1;
+  while(stepped) {
+    stepped=0;
+    for(i=0;i<8;i++) {
+      struct process_descriptor_block *p
+        =(struct process_descriptor_block*)((unsigned short)stored_pdbs+(i<<8));
+      if (pid==p->process_id) { pid++; stepped=1; }
+    }
+  }
+
+  return pid;
+}
 
 void print_char(char c)
 {
