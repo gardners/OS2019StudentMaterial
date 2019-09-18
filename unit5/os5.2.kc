@@ -245,3 +245,4 @@ XXX - Add the following line inside your RESET() function just
 
 
 XXX - Add the missing system traps and entry point tables here
+XXX - (And don't forget to include the #pragma line to force them into the syscall segment)
