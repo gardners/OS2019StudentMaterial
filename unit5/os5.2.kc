@@ -177,7 +177,7 @@ void initialise_pdb(unsigned char pdb_number,char *name)
 
 
   XXX - Then do the same for the end address of the process
-  This gets stored into p->process_end_address and the correct
+  This gets stored into p->storage_end_address and the correct
   address is $31FFF + (((unsigned dword)pdb_number)*$2000);
 
   // Initialise processor state for standard entry at $080D
