@@ -1,7 +1,8 @@
 sec
 sbc #{c1}
-beq {la1}
+beq !e+
 bvc !+
 eor #$80
 !:
-bmi {la1}
+bpl {la1}
+!e:

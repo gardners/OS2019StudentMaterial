@@ -1,7 +1,8 @@
-ldy #{c1}
+pha
 lda ({z1}),y
 sta !+ +1
 iny
 lda ({z1}),y
 sta !+ +2
-!: stx $ffff
+pla
+!: sta $ffff
