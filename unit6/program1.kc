@@ -2,7 +2,6 @@ import "osabi"
 
 void main()
 {
-
   // Get message
   struct ipc_message *m=ipc_read();
   unsigned char *msg=m->message;

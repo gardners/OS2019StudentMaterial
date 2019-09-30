@@ -18,17 +18,23 @@ program3.prg:	program3.kc osabi.kc
 program4.prg:	program4.kc osabi.kc
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
 
-packed.bin:	program1.prg program2.prg program3.prg program4.prg pack
-	./pack program1.prg program2.prg program3.prg program4.prg
+packed1.bin:	program1.prg pack
+	./pack program1.prg && mv packed.bin packed1.bin
 
-test6.1:	os6.1.bin packed.bin
-	xmega65 -loadrom packed.bin -kickup os6.1.bin
+packed2.bin:	program1.prg program2.prg pack
+	./pack program1.prg program2.prg && mv packed.bin packed2.bin
+
+packed4.bin:	program1.prg program2.prg program3.prg program4.prg pack
+	./pack program1.prg program2.prg program3.prg program4.prg && mv packed.bin packed4.bin
+
+test6.1:	os6.1.bin packed1.bin
+	xmega65 -loadrom packed1.bin -kickup os6.1.bin
 
 os6.1.bin:	os6.1.kc
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<
 
-test6.2:	os6.2.bin packed.bin
-	xmega65 -loadrom packed.bin -kickup os6.2.bin
+test6.2:	os6.2.bin packed2.bin
+	xmega65 -loadrom packed2.bin -kickup os6.2.bin
 
 os6.2.bin:	os6.2.kc
 	${HOME}/OS2019StudentMaterial/kickc/bin/kickc.sh -a $<

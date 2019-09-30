@@ -2,14 +2,7 @@ import "osabi"
 
 void main()
 {
-	showpid();
-	yield();
-	showpid();
-	yield();
-	showpid();
-	yield();
-	showpid();
-	yield();
-
-	while(true) continue;
+  ipc_send(1,1,1,"cpoint 6.2  ");
+    
+  while(true) yield();
 }
