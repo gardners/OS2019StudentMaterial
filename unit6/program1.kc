@@ -1,0 +1,16 @@
+import "osabi"
+
+void main()
+{
+
+  // Get message
+  struct ipc_message *m=ipc_read();
+  unsigned char *msg=m->message;
+
+  // Print message contents to screen
+  for(unsigned char i=0;i<12;i++)
+    *(unsigned char *)($0400+i)=msg[i];
+
+	while(true) continue;
+
+}

@@ -1,0 +1,14 @@
+import "osabi"
+
+void main()
+{
+	if (fork()) {
+		// We show only PID and PDB in parent
+		showpid();
+	} else {
+	// We show info in child process
+	exec("program4.prg");
+	}
+
+	while(true) yield();
+}

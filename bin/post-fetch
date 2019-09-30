@@ -1,13 +1,14 @@
 #!/bin/bash
 echo "Running post-fetch script"
 echo root | su - root ${HOME}/OS2019StudentMaterial/bin/as-root
-mkdir -p ${HOME}/repo/unit{2,3,4,5}
+mkdir -p ${HOME}/repo/unit{2,3,4,5,6,7,8}
 cp ${HOME}/OS2019StudentMaterial/unit2/mega65hyper.ld ${HOME}/repo/unit2/
 cp ${HOME}/OS2019StudentMaterial/unit2/Makefile ${HOME}/repo/unit2/
 cp ${HOME}/OS2019StudentMaterial/unit3/* ${HOME}/repo/unit3/
 cp ${HOME}/OS2019StudentMaterial/unit4/* ${HOME}/repo/unit4/
 cp ${HOME}/OS2019StudentMaterial/unit5/program?.kc ${HOME}/repo/unit5/
 cp ${HOME}/OS2019StudentMaterial/unit5/{Makefile,check_if_committed,pack.c} ${HOME}/repo/unit5/
+cp ${HOME}/OS2019StudentMaterial/unit6/{Makefile,check_if_committed,pack.c,program?.kc} ${HOME}/repo/unit6/
 if [ ! -e ${HOME}/repo/unit5/osabi.kc ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit5/osabi.kc ${HOME}/repo/unit5/
 fi

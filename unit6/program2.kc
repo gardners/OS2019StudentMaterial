@@ -1,0 +1,15 @@
+import "osabi"
+
+void main()
+{
+	showpid();
+	yield();
+	showpid();
+	yield();
+	showpid();
+	yield();
+	showpid();
+	yield();
+
+	while(true) continue;
+}
