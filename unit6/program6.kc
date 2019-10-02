@@ -1,0 +1,29 @@
+import "osabi"
+
+void main()
+{
+  unsigned char *scr=$0400;
+
+  while(true) {
+
+    // Get message
+    struct ipc_message *m=ipc_read();
+
+    if (m->to==0xFF) {
+      while(true) {
+	continue;
+      }
+    }
+
+    unsigned char *msg=m->message;
+
+    // Print message contents to screen
+    for(unsigned char i=0;i<12;i++)
+      scr[i]=msg[i];
+
+    scr+=40;
+    if (scr>$0700) scr=$0400;
+    
+  }
+
+}
