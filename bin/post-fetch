@@ -11,6 +11,7 @@ cp ${HOME}/OS2019StudentMaterial/unit4/* ${HOME}/repo/unit4/
 cp ${HOME}/OS2019StudentMaterial/unit5/program?.kc ${HOME}/repo/unit5/
 cp ${HOME}/OS2019StudentMaterial/unit5/{Makefile,check_if_committed,pack.c} ${HOME}/repo/unit5/
 cp ${HOME}/OS2019StudentMaterial/unit6/{Makefile,check_if_committed,pack.c,program?.kc} ${HOME}/repo/unit6/
+cp ${HOME}/OS2019StudentMaterial/unit6/{Makefile,check_if_committed,unit7.h,unit7.o} ${HOME}/repo/unit7/
 if [ ! -e ${HOME}/repo/unit5/osabi.kc ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit5/osabi.kc ${HOME}/repo/unit5/
 fi
@@ -34,4 +35,7 @@ if [ ! -e ${HOME}/repo/unit5/program3.kc ]; then
 fi
 if [ ! -e ${HOME}/repo/unit5/program4.kc ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit5/program4.kc ${HOME}/repo/unit5/
+fi
+if [ ! -e ${HOME}/repo/unit7/wu7_solution.c ]; then
+	cp ${HOME}/OS2019StudentMaterial/unit7/wu7_solution.c ${HOME}/repo/unit7/
 fi
