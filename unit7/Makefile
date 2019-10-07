@@ -1,4 +1,7 @@
-all:	researchtopic
+all:	test
 
-researchtopic:	researchtopic.c Makefile
-	gcc -Wall -o researchtopic researchtopic.c -lssl -lcrypto
+test:	unit7 Makefile
+	./check_if_committed && ./unit7
+
+unit7:	Makefile unit7.o unit7.h wu7_solution.c
+	gcc -g -Wall -o unit7 unit7.o wu7_solution.c
