@@ -1,0 +1,8 @@
+#!/bin/bash
+uncommitted=`git status | grep modified: | wc -l`
+if [ $uncommitted == 0 ]; then
+  exit 0
+else
+  echo "You have uncommitted changes. Please use git commit to secure them, and then try again."
+  exit 255
+fi
