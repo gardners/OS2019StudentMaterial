@@ -38,4 +38,5 @@ if [ ! -e ${HOME}/repo/unit5/program4.kc ]; then
 fi
 if [ ! -e ${HOME}/repo/unit7/wu7_solution.c ]; then
 	cp ${HOME}/OS2019StudentMaterial/unit7/wu7_solution.c ${HOME}/repo/unit7/
+	( cd ${HOME}/repo/unit7 ; git add wu7_solution.c ; git commit -m 'import initial version of wu7 template' wu7_solution.c ; git pull --rebase ; git push origin )
 fi
